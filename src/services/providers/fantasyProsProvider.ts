@@ -3,10 +3,6 @@
 //
 // SECURITY: The FantasyPros API key is NEVER in frontend code.
 // It lives only as a server-side environment variable on the edge function.
-//
-// // TODO-INTEGRATION: FANTASYPROS_API
-// To activate: set the FANTASYPROS_API_KEY secret on the Supabase edge function.
-// See docs/INTEGRATION_ROADMAP.md for deployment instructions.
 
 import {
   mapProjection,
@@ -14,10 +10,10 @@ import {
   mapRanking,
   mapInjury,
   mapNews,
-  type RawFPProjection,
-  type RawFPRanking,
+  type RawFPProjectionPlayer,
+  type RawFPRankingPlayer,
   type RawFPInjury,
-  type RawFPNews,
+  type RawFPNewsItem,
   type RawFPPlayer,
 } from '../fantasyData/fantasyDataMapper';
 import type {
@@ -30,7 +26,6 @@ import type {
 } from '@/types';
 import { findNormalizedPlayerByFantasyProsId } from '../fantasyData/playerCrosswalk';
 
-// The edge function endpoint — deployed at /functions/v1/fantasy-data
 const EDGE_FUNCTION_PATH = 'fantasy-data';
 
 function getEdgeFunctionUrl(): string {
@@ -57,7 +52,13 @@ export async function checkProviderStatus(): Promise<boolean> {
     const resp = await fetch(`${url}?endpoint=status`, {
       headers: getHeaders(),
     });
-    providerAvailable = resp.ok;
+    if (resp.ok) {
+      const body = await resp.json();
+      const available = body?.data?.available ?? false;
+      providerAvailable = Boolean(available);
+    } else {
+      providerAvailable = false;
+    }
     return providerAvailable;
   } catch {
     providerAvailable = false;
@@ -71,15 +72,25 @@ export function resetProviderStatus(): void {
 
 // ---- API calls (all go through the edge function) ----
 
-interface EdgeFunctionResponse<T> {
-  data?: T;
-  error?: string;
+// FantasyPros wraps arrays in a { players: [...] } or { data: [...] } envelope.
+interface FPResponse<T> {
+  sport?: string;
+  count?: number;
+  players?: T[];
+  data?: T[];
+  [key: string]: unknown;
 }
 
-async function callEdgeFunction<T>(
+interface EdgeFunctionResponse {
+  data?: FPResponse<unknown>;
+  error?: string;
+  detail?: string;
+}
+
+async function callEdgeFunction(
   endpoint: string,
   params: Record<string, string>,
-): Promise<T | null> {
+): Promise<unknown | null> {
   const url = new URL(getEdgeFunctionUrl());
   url.searchParams.set('endpoint', endpoint);
   for (const [key, value] of Object.entries(params)) {
@@ -89,19 +100,30 @@ async function callEdgeFunction<T>(
   const resp = await fetch(url.toString(), { headers: getHeaders() });
 
   if (!resp.ok) {
-    // 503 = provider not configured / unavailable
     if (resp.status === 503) {
       providerAvailable = false;
       return null;
     }
-    throw new Error(`Fantasy data request failed (${resp.status})`);
+    // Try to extract error detail
+    try {
+      const body = await resp.json() as EdgeFunctionResponse;
+      throw new Error(body.detail ?? body.error ?? `Fantasy data request failed (${resp.status})`);
+    } catch {
+      throw new Error(`Fantasy data request failed (${resp.status})`);
+    }
   }
 
-  const body = await resp.json() as EdgeFunctionResponse<T>;
+  const body = await resp.json() as EdgeFunctionResponse;
   if (body.error) {
     throw new Error(body.error);
   }
   return body.data ?? null;
+}
+
+function extractPlayers<T>(data: unknown): T[] {
+  if (!data || typeof data !== 'object') return [];
+  const resp = data as FPResponse<T>;
+  return resp.players ?? resp.data ?? [];
 }
 
 // ---- Public provider functions ----
@@ -112,19 +134,20 @@ export async function fetchWeeklyProjections(
   scoringFormat: ScoringFormat,
   position?: string,
 ): Promise<PlayerWeeklyProjection[]> {
-  const raw = await callEdgeFunction<RawFPProjection[]>('projections', {
+  const data = await callEdgeFunction('projections', {
     season: String(season),
-    week: String(week),
     scoring: scoringFormatToFP(scoringFormat),
+    week: String(week),
     ...(position ? { position } : {}),
   });
-  if (!raw) return [];
+  const rawPlayers = extractPlayers<RawFPProjectionPlayer>(data);
+  if (rawPlayers.length === 0) return [];
 
   const projections: PlayerWeeklyProjection[] = [];
-  for (const r of raw) {
-    const fpId = r.player_id;
+  for (const r of rawPlayers) {
+    const fpId = r.fpid;
     if (!fpId) continue;
-    const sleeperId = await findNormalizedPlayerByFantasyProsId(fpId);
+    const sleeperId = await findNormalizedPlayerByFantasyProsId(String(fpId));
     if (!sleeperId) continue;
     projections.push(mapProjection(r, sleeperId, season, week, scoringFormat));
   }
@@ -136,18 +159,20 @@ export async function fetchPlayerFantasyPoints(
   week: number,
   scoringFormat: ScoringFormat,
 ): Promise<PlayerFantasyPerformance[]> {
-  const raw = await callEdgeFunction<RawFPProjection[]>('points', {
+  const data = await callEdgeFunction('player-points', {
     season: String(season),
-    week: String(week),
+    week_start: String(week),
+    week_end: String(week),
     scoring: scoringFormatToFP(scoringFormat),
   });
-  if (!raw) return [];
+  const rawPlayers = extractPlayers<RawFPProjectionPlayer>(data);
+  if (rawPlayers.length === 0) return [];
 
   const performances: PlayerFantasyPerformance[] = [];
-  for (const r of raw) {
-    const fpId = r.player_id;
+  for (const r of rawPlayers) {
+    const fpId = r.fpid;
     if (!fpId) continue;
-    const sleeperId = await findNormalizedPlayerByFantasyProsId(fpId);
+    const sleeperId = await findNormalizedPlayerByFantasyProsId(String(fpId));
     if (!sleeperId) continue;
     performances.push(mapPerformance(r, sleeperId, season, week, scoringFormat));
   }
@@ -155,22 +180,24 @@ export async function fetchPlayerFantasyPoints(
 }
 
 export async function fetchRankings(
+  season: number,
   week: number,
   scoringFormat: ScoringFormat,
   position?: string,
 ): Promise<PlayerRanking[]> {
-  const raw = await callEdgeFunction<RawFPRanking[]>('rankings', {
-    week: String(week),
+  const data = await callEdgeFunction('consensus-rankings', {
+    season: String(season),
     scoring: scoringFormatToFP(scoringFormat),
     ...(position ? { position } : {}),
   });
-  if (!raw) return [];
+  const rawPlayers = extractPlayers<RawFPRankingPlayer>(data);
+  if (rawPlayers.length === 0) return [];
 
   const rankings: PlayerRanking[] = [];
-  for (const r of raw) {
+  for (const r of rawPlayers) {
     const fpId = r.player_id;
     if (!fpId) continue;
-    const sleeperId = await findNormalizedPlayerByFantasyProsId(fpId);
+    const sleeperId = await findNormalizedPlayerByFantasyProsId(String(fpId));
     if (!sleeperId) continue;
     const mapped = mapRanking(r, sleeperId, scoringFormat, week);
     if (mapped) rankings.push(mapped);
@@ -178,15 +205,24 @@ export async function fetchRankings(
   return rankings;
 }
 
-export async function fetchInjuries(): Promise<PlayerInjury[]> {
-  const raw = await callEdgeFunction<RawFPInjury[]>('injuries', {});
-  if (!raw) return [];
+export async function fetchInjuries(
+  season: number,
+  week: number,
+): Promise<PlayerInjury[]> {
+  const data = await callEdgeFunction('injuries', {
+    season: String(season),
+    week: String(week),
+  });
+  // Injuries endpoint wraps data in an 'injuries' key, not 'players'
+  const fpData = data as { injuries?: RawFPInjury[]; players?: RawFPInjury[] } | null;
+  const rawInjuries = fpData?.injuries ?? fpData?.players ?? [];
+  if (rawInjuries.length === 0) return [];
 
   const injuries: PlayerInjury[] = [];
-  for (const r of raw) {
+  for (const r of rawInjuries) {
     const fpId = r.player_id;
     if (!fpId) continue;
-    const sleeperId = await findNormalizedPlayerByFantasyProsId(fpId);
+    const sleeperId = await findNormalizedPlayerByFantasyProsId(String(fpId));
     if (!sleeperId) continue;
     injuries.push(mapInjury(r, sleeperId));
   }
@@ -194,15 +230,34 @@ export async function fetchInjuries(): Promise<PlayerInjury[]> {
 }
 
 export async function fetchPlayerNews(playerId: string): Promise<PlayerNews[]> {
-  const raw = await callEdgeFunction<RawFPNews[]>('news', { playerId });
-  if (!raw) return [];
+  const data = await callEdgeFunction('news', {
+    player_id: playerId,
+  });
+  const rawNews = extractPlayers<RawFPNewsItem>(data);
+  if (rawNews.length === 0) return [];
 
-  return raw.map((r) => mapNews(r, playerId));
+  return rawNews.map((r) => mapNews(r, playerId));
 }
 
 export async function fetchAllPlayerMetadata(): Promise<RawFPPlayer[]> {
-  const raw = await callEdgeFunction<RawFPPlayer[]>('players', {});
-  return raw ?? [];
+  const data = await callEdgeFunction('players', {});
+  return extractPlayers<RawFPPlayer>(data);
+}
+
+/**
+ * Fetches raw ranking players (before crosswalk mapping) for crosswalk building.
+ * Returns the raw FantasyPros ranking players with player_id, name, team, position.
+ */
+export async function fetchRawRankingPlayers(
+  season: number,
+  position: string,
+): Promise<RawFPRankingPlayer[]> {
+  const data = await callEdgeFunction('consensus-rankings', {
+    season: String(season),
+    scoring: 'PPR',
+    position,
+  });
+  return extractPlayers<RawFPRankingPlayer>(data);
 }
 
 // ---- Helpers ----

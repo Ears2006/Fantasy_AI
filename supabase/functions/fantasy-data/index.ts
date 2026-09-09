@@ -3,20 +3,23 @@
 // The FantasyPros API key is stored as a server-side secret (FANTASYPROS_API_KEY).
 // It is NEVER exposed to the browser.
 //
+// API reference: https://api.fantasypros.com/public/v2/docs
+// Base URL: https://api.fantasypros.com/public/v2/json
+// Auth: x-api-key header
+//
 // Routes (via ?endpoint= query param):
-//   status       — check if the API key is configured
-//   projections  — weekly projections (?season=&week=&scoring=&position=)
-//   points       — actual fantasy points (?season=&week=&scoring=)
-//   rankings     — consensus rankings (?week=&scoring=&position=)
-//   injuries     — current injury report
-//   news         — player news (?playerId=)
-//   players      — player metadata (for crosswalk building)
+//   status              — check if the API key is configured
+//   projections         — GET /nfl/{season}/projections (?position=&scoring=&week=)
+//   player-points       — GET /nfl/{season}/player-points (?week_start=&week_end=&scoring=)
+//   consensus-rankings  — GET /nfl/{season}/consensus-rankings (?position=&scoring=&week=)
+//   rankings            — GET /nfl/{season}/rankings (?position=&scoring=)
+//   injuries            — GET /nfl/injuries (?season=&week=)
+//   news                — GET /nfl/news (?player_id=&limit=)
+//   players             — GET /nfl/players
 //
 // // TODO-INTEGRATION: FANTASYPROS_API
 // To configure: set the FANTASYPROS_API_KEY secret via Supabase dashboard or CLI:
 //   supabase secrets set FANTASYPROS_API_KEY=your_key_here
-//
-// All responses include mandatory CORS headers.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,17 +27,46 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const FP_API_BASE = "https://api.fantasypros.com/v2/json";
-const REQUEST_TIMEOUT_MS = 10000;
+const FP_API_BASE = "https://api.fantasypros.com/public/v2/json";
+const REQUEST_TIMEOUT_MS = 15000;
 
-// Centralized endpoint path configuration.
-const ENDPOINT_PATHS: Record<string, (params: Record<string, string>) => string> = {
-  projections: (p) => `/nfl/projections/${p.scoring ?? 'STD'}/${p.week ?? '1'}/${p.season ?? '2025'}`,
-  points: (p) => `/nfl/points/${p.scoring ?? 'STD'}/${p.week ?? '1'}/${p.season ?? '2025'}`,
-  rankings: (p) => `/nfl/rankings/${p.scoring ?? 'STD'}/${p.week ?? '1'}/${p.season ?? '2025'}`,
-  injuries: () => `/nfl/injuries`,
-  news: () => `/nfl/news`,
-  players: () => `/nfl/players`,
+// Centralized endpoint path + query parameter configuration.
+// Each builder returns the full path and query string for the FantasyPros API.
+interface FPEndpointConfig {
+  path: (params: Record<string, string>) => string;
+  // Which query params to forward to FantasyPros (beyond our internal ones)
+  forwardParams?: string[];
+}
+
+const ENDPOINT_CONFIG: Record<string, FPEndpointConfig> = {
+  projections: {
+    path: (p) => `/nfl/${p.season ?? "2025"}/projections`,
+    forwardParams: ["position", "scoring", "week", "type"],
+  },
+  "player-points": {
+    path: (p) => `/nfl/${p.season ?? "2025"}/player-points`,
+    forwardParams: ["week_start", "week_end", "scoring"],
+  },
+  "consensus-rankings": {
+    path: (p) => `/nfl/${p.season ?? "2025"}/consensus-rankings`,
+    forwardParams: ["position", "scoring", "week", "type"],
+  },
+  rankings: {
+    path: (p) => `/nfl/${p.season ?? "2025"}/rankings`,
+    forwardParams: ["position", "scoring", "week"],
+  },
+  injuries: {
+    path: () => `/nfl/injuries`,
+    forwardParams: ["season", "week"],
+  },
+  news: {
+    path: () => `/nfl/news`,
+    forwardParams: ["player_id", "limit", "category"],
+  },
+  players: {
+    path: () => `/nfl/players`,
+    forwardParams: ["position"],
+  },
 };
 
 Deno.serve(async (req: Request) => {
@@ -70,16 +102,27 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const pathBuilder = ENDPOINT_PATHS[endpoint];
-    if (!pathBuilder) {
+    const config = ENDPOINT_CONFIG[endpoint];
+    if (!config) {
       return jsonResponse(
         { error: `Unknown endpoint: ${endpoint}` },
         400,
       );
     }
 
-    const path = pathBuilder(params);
-    const fpUrl = `${FP_API_BASE}${path}`;
+    // Build the FantasyPros URL with forwarded query params.
+    const fpPath = config.path(params);
+    const fpUrl = new URL(`${FP_API_BASE}${fpPath}`);
+
+    // Forward allowed query params to FantasyPros.
+    if (config.forwardParams) {
+      for (const paramName of config.forwardParams) {
+        const value = params[paramName];
+        if (value) {
+          fpUrl.searchParams.set(paramName, value);
+        }
+      }
+    }
 
     // Fetch with timeout.
     const controller = new AbortController();
@@ -87,7 +130,7 @@ Deno.serve(async (req: Request) => {
 
     let fpResp: Response;
     try {
-      fpResp = await fetch(fpUrl, {
+      fpResp = await fetch(fpUrl.toString(), {
         headers: {
           "x-api-key": apiKey,
           "Accept": "application/json",
@@ -105,8 +148,17 @@ Deno.serve(async (req: Request) => {
     clearTimeout(timeoutId);
 
     if (!fpResp.ok) {
+      // Read the error body for more context (without exposing the API key).
+      let errorDetail = "";
+      try {
+        const errorBody = await fpResp.text();
+        // Only include a short snippet, no headers or auth info.
+        errorDetail = errorBody.slice(0, 200);
+      } catch {
+        // Ignore — just report the status code.
+      }
       return jsonResponse(
-        { error: `FantasyPros API returned ${fpResp.status}` },
+        { error: `FantasyPros API returned ${fpResp.status}`, detail: errorDetail || undefined },
         fpResp.status,
       );
     }

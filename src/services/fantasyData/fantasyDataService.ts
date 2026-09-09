@@ -26,6 +26,7 @@ import {
   fetchInjuries,
   fetchPlayerNews,
   fetchAllPlayerMetadata,
+  fetchRawRankingPlayers,
 } from '@/services/providers/fantasyProsProvider';
 import {
   buildPlayerCrosswalk,
@@ -35,21 +36,48 @@ import { calculateFantasyPoints } from './scoringEngine';
 
 let crosswalkInitialized = false;
 
+const CROSSWALK_POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DST'];
+
 /**
- * Initializes the player crosswalk by fetching FantasyPros player metadata
+ * Initializes the player crosswalk by fetching FantasyPros player data
  * and matching it against the Sleeper player database.
- * Called lazily on first data access.
+ *
+ * Uses consensus-rankings for all positions to build the crosswalk,
+ * since the /players endpoint returns limited sample data on the free tier.
  */
 async function ensureCrosswalk(): Promise<void> {
   if (crosswalkInitialized) return;
   try {
-    const fpPlayers = await fetchAllPlayerMetadata();
+    // Try the players endpoint first (may have full data on premium tier)
+    let fpPlayers = await fetchAllPlayerMetadata();
+
+    // If players endpoint returned limited data, supplement with rankings
+    if (fpPlayers.length < 100) {
+      const season = getCurrentSeason();
+      for (const pos of CROSSWALK_POSITIONS) {
+        try {
+          const rawRankingPlayers = await fetchRawRankingPlayers(season, pos);
+          // Convert ranking players to the RawFPPlayer shape for the crosswalk
+          fpPlayers = fpPlayers.concat(
+            rawRankingPlayers.map((r) => ({
+              player_id: r.player_id,
+              player_name: r.player_name,
+              team_id: r.player_team_id,
+              position_id: r.player_position_id,
+              player_yahoo_id: r.player_yahoo_id,
+            })),
+          );
+        } catch {
+          // Continue with other positions
+        }
+      }
+    }
+
     if (fpPlayers.length > 0) {
       await buildPlayerCrosswalk(fpPlayers);
     }
     crosswalkInitialized = true;
   } catch {
-    // Crosswalk build failed — data functions will return null for unknown players.
     crosswalkInitialized = true;
   }
 }
@@ -185,7 +213,7 @@ export async function getPlayerRanking(
   if (cached) return cached;
 
   try {
-    const all = await fetchRankings(week, scoringFormat);
+    const all = await fetchRankings(getCurrentSeason(), week, scoringFormat);
     const found = all.find((r) => r.playerId === playerId);
     if (found) setCached(cacheKey, found);
     return found ?? null;
@@ -209,7 +237,7 @@ export async function getPositionRankings(
   if (cached) return cached;
 
   try {
-    const all = await fetchRankings(week, scoringFormat, position);
+    const all = await fetchRankings(getCurrentSeason(), week, scoringFormat, position);
     setCached(cacheKey, all);
     return all;
   } catch {
@@ -236,7 +264,7 @@ export async function getPlayerInjury(playerId: string): Promise<PlayerInjury | 
   let all = getCached<PlayerInjury[]>(cacheKey);
   if (!all) {
     try {
-      all = await fetchInjuries();
+      all = await fetchInjuries(getCurrentSeason(), 1);
       setCached(cacheKey, all);
     } catch {
       return null;
@@ -256,7 +284,7 @@ export async function getCurrentInjuries(): Promise<PlayerInjury[]> {
   if (cached) return cached;
 
   try {
-    const injuries = await fetchInjuries();
+    const injuries = await fetchInjuries(getCurrentSeason(), 1);
     setCached(cacheKey, injuries);
     return injuries;
   } catch {

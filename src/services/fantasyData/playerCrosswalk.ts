@@ -10,7 +10,7 @@ import { normalizePosition, normalizeTeam, type RawFPPlayer } from './fantasyDat
 // In-memory crosswalk map: Sleeper ID -> PlayerExternalIds
 let crosswalkMap: Map<string, PlayerExternalIds> | null = null;
 
-// Reverse map: FantasyPros ID -> Sleeper ID
+// Reverse map: FantasyPros ID (string) -> Sleeper ID
 let fpToSleeperMap: Map<string, string> | null = null;
 
 /**
@@ -20,7 +20,7 @@ let fpToSleeperMap: Map<string, string> | null = null;
  * Matching priority:
  * 1. Direct external ID (Sleeper's espn_id/yahoo_id if FantasyPros provides the same)
  * 2. Exact normalized name + NFL team + position
- * 3. Exact normalized name + position (ambiguous — logged but used cautiously)
+ * 3. Exact normalized name + position (ambiguous — only used if exactly 1 match)
  */
 export async function buildPlayerCrosswalk(
   fpPlayers: RawFPPlayer[],
@@ -61,12 +61,12 @@ export async function buildPlayerCrosswalk(
   const result = new Map<string, PlayerExternalIds>();
 
   for (const fp of fpPlayers) {
-    const fpId = fp.player_id;
+    const fpId = String(fp.player_id);
     if (!fpId) continue;
 
-    const fpName = normalizeName(fp.name ?? '');
-    const fpTeam = normalizeTeam(fp.team);
-    const fpPos = normalizePosition(fp.position);
+    const fpName = normalizeName(fp.player_name ?? '');
+    const fpTeam = normalizeTeam(fp.team_id);
+    const fpPos = normalizePosition(fp.position_id);
 
     if (!fpName) continue;
 
@@ -95,7 +95,7 @@ export async function buildPlayerCrosswalk(
         ...existing,
         sleeper: matchedPlayer.id,
         fantasyPros: fpId,
-        yahoo: raw?.yahoo_id ? String(raw.yahoo_id) : existing?.yahoo,
+        yahoo: raw?.yahoo_id ? String(raw.yahoo_id) : (fp.player_yahoo_id ? String(fp.player_yahoo_id) : existing?.yahoo),
         espn: raw?.espn_id ? String(raw.espn_id) : existing?.espn,
       });
     }
