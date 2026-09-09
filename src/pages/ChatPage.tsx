@@ -11,13 +11,9 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { MessageBubble } from '@/components/chat/MessageBubble';
 import { Welcome } from '@/components/chat/Welcome';
 import { YahooConnectCard } from '@/components/fantasy/YahooConnectCard';
-import { getSleeperPlayers } from '../services/fantasy/playerStatsService';
-
+import { validateImageFile, readAsDataUrl, ACCEPT_STRING } from '@/services/upload/uploadService';
 
 export function ChatPage() {
-  
-  
-
   const { yahoo, user } = useApp();
   const { activeSession, addMessage, removeMessage } = useChatStore();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -25,10 +21,6 @@ export function ChatPage() {
   const prevYahooConnected = useRef(yahoo.connected);
 
   const messages = activeSession?.messages ?? [];
-
-  
-
-  
 
   // Auto-scroll to bottom on new messages.
   useEffect(() => {
@@ -109,21 +101,41 @@ export function ChatPage() {
     fileRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
+    e.target.value = '';
+
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      addMessage({
+        id: uid(),
+        kind: 'assistant',
+        text: validation.error ?? 'Invalid file. Please upload a PNG, JPG, or WEBP image under 10 MB.',
+        createdAt: Date.now(),
+      });
+      return;
+    }
+
+    try {
+      const dataUrl = await readAsDataUrl(file);
       const attachment: ChatAttachment = {
         id: uid(),
         name: file.name,
-        dataUrl: reader.result as string,
+        dataUrl,
         kind: 'image',
       };
+      // TODO-INTEGRATION: ROSTER_SCREENSHOT_ANALYSIS
+      // TODO-INTEGRATION: WEEKLY_MATCHUP_ANALYSIS
       void send('Analyze this roster screenshot', [attachment]);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    } catch {
+      addMessage({
+        id: uid(),
+        kind: 'assistant',
+        text: 'Failed to read the image file. Please try again.',
+        createdAt: Date.now(),
+      });
+    }
   };
 
   return (
@@ -154,7 +166,7 @@ export function ChatPage() {
 
       <ChatInput onSend={send} busy={messages.some((m) => m.pending)} pendingText="Analyzing roster..." />
 
-      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+      <input ref={fileRef} type="file" accept={ACCEPT_STRING} className="hidden" onChange={handleFileChange} />
     </div>
   );
 }

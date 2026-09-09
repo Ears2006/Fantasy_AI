@@ -7,6 +7,7 @@ import { AuthModal } from '@/components/auth/AuthModal';
 import { ChatPage } from '@/pages/ChatPage';
 import { MyTeamPage } from '@/pages/MyTeamPage';
 import { LeaguePage } from '@/pages/LeaguePage';
+import { LeagueSettingsPage } from '@/pages/LeagueSettingsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { AboutPage } from '@/pages/AboutPage';
 import { HowItWorksPage } from '@/pages/HowItWorksPage';
@@ -51,6 +52,7 @@ function AppShell() {
           {page === 'chat' && <ChatPage />}
           {page === 'my-team' && <div className="flex-1 overflow-y-auto"><MyTeamPage /></div>}
           {page === 'league' && <div className="flex-1 overflow-y-auto"><LeaguePage /></div>}
+          {page === 'league-settings' && <div className="flex-1 overflow-y-auto"><LeagueSettingsPage /></div>}
           {page === 'settings' && <div className="flex-1 overflow-y-auto"><SettingsPage /></div>}
           {page === 'about' && <div className="flex-1 overflow-y-auto"><AboutPage /></div>}
           {page === 'how-it-works' && <div className="flex-1 overflow-y-auto"><HowItWorksPage /></div>}

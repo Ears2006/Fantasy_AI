@@ -1,311 +1,243 @@
 # Integration Roadmap
 
-This document tracks every major integration that is currently mocked and needs a real implementation. Search the codebase for the `TODO-INTEGRATION` marker listed in each section to find the exact files and functions.
+This document tracks every major integration — what is now REAL versus MOCK, where each lives, and the data flow architecture.
 
-## How the mock layer is structured
+## REAL NOW
 
-The UI never talks to external APIs directly. Every integration goes through a service abstraction in `src/services/`. Each service file contains:
+The following features use real data and are fully functional:
 
-1. A `TODO-INTEGRATION` comment explaining what the real implementation should do, what input it receives, what output shape the UI expects, and which mock function it replaces.
-2. A mock function that returns realistic data from `src/mock/data.ts`.
+### Sleeper Active NFL Player Data
+- **Status:** REAL
+- **Service:** `src/services/sleeper/sleeperService.ts`
+- **Mapper:** `src/services/sleeper/sleeperMapper.ts`
+- **Cache:** `src/services/sleeper/sleeperCache.ts` (IndexedDB, 24h TTL)
+- **Search:** `src/services/sleeper/playerSearch.ts`
+- **Data source:** Sleeper API (`https://api.sleeper.app/v1/players/nfl`)
+- **Details:** Fetches all active NFL players, validates positions and teams, maps into the shared `Player` type, caches in IndexedDB with automatic refresh. Falls back to stale cache if the API is unreachable.
 
-To implement a real integration, replace the body of the mock function while keeping the same function signature and return type. No UI components need to change.
+### Player Normalization
+- **Status:** REAL
+- **Mapper:** `src/services/sleeper/sleeperMapper.ts`
+- **Details:** Validates position strings against a known set before casting to `FantasyPosition`. Maps DEF/DST to D/ST. Validates NFL team abbreviations against the known set. Handles free agents safely (skips them). Builds injury tags from injury_status + injury_body_part.
 
----
+### Player Search
+- **Status:** REAL
+- **Service:** `src/services/sleeper/playerSearch.ts`
+- **Component:** `src/components/fantasy/PlayerSearch.tsx`
+- **Details:** Case-insensitive partial name matching, position filter, NFL team filter. Ranks exact > prefix > partial matches. Excludes UI-only positions (FLEX, Bench). Debounced with loading/error/empty states and keyboard navigation.
 
-## 1. AI Model Integration
+### Player Cache (IndexedDB)
+- **Status:** REAL
+- **Service:** `src/services/sleeper/sleeperCache.ts`
+- **Details:** Stores the full Sleeper player database in IndexedDB (not localStorage, which exceeded quota). 24-hour TTL. Automatic refresh when stale. Falls back to stale cache on API failure. Manual cache clear via `refreshPlayerCache()`.
 
-**Integration name:** AI Model (LLM for fantasy analysis + chat)
+### Manual Roster Functionality
+- **Status:** REAL
+- **Service:** `src/services/team/manualTeamService.ts`
+- **Component:** `src/components/fantasy/RosterBuilder.tsx`
+- **Page:** My Team page → Manual Team tab
+- **Details:** Users can set a team name, search for real NFL players, add them to roster slots (QB/RB/WR/TE/FLEX/K/D/ST/Bench), remove players, move between starter/bench, and save locally. Prevents duplicate player entries. Persists to localStorage.
 
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: AI_MODEL`
+### Manual League Settings
+- **Status:** REAL
+- **Service:** `src/services/team/manualTeamService.ts`
+- **Component:** `src/components/fantasy/LeagueSettingsEditor.tsx`
+- **Page:** League Settings page (sidebar nav)
+- **Details:** Configure league name, number of teams, scoring format presets (Standard/Half-PPR/Full-PPR/PPR), all scoring parameters (pass/rush/receive TDs, yards, receptions, INT, fumbles), roster slot counts (QB/RB/WR/TE/FLEX/Bench), kicker/defense toggles. Persists to localStorage.
 
-**Current mock file/function:**
-- `src/services/ai/fantasyAiService.ts` — `generateFantasyResponse()`, `generatePostConnectionResponse()`, `detectIntent()`
+### Chat Tool Architecture
+- **Status:** REAL (framework ready, analysis tools not connected)
+- **Definitions:** `src/services/ai/toolDefinitions.ts`
+- **Implementations:** `src/services/ai/toolImplementations.ts`
+- **Details:** Typed input/output contracts for 9 tools. `player_search` and `player_info` are REAL (call the Sleeper service). All analysis tools (start_sit, waiver, trade, sleeper, matchup, roster) return explicit "not-connected" status. The future AI model can call these without importing React components.
 
-**Expected input:**
-- User text string
-- Optional `ChatAttachment[]` (image data URLs)
-- Chat history (future)
-- League context: scoring settings, roster, matchup (future)
-
-**Expected return type:**
-- `ChatMessage[]` — one or more messages with `kind` set to `'assistant'`, `'roster-analysis'`, `'sleeper-recommendation'`, `'trade-analysis'`, `'matchup-analysis'`, or `'lineup-suggestion'`
-
-**UI components that depend on it:**
-- `src/pages/ChatPage.tsx`
-- `src/components/chat/MessageBubble.tsx` (renders the returned messages)
-
-**Suggested implementation steps:**
-1. Choose an LLM provider (OpenAI, Anthropic, or hosted model).
-2. Create a server-side edge function (Supabase Edge Function) that proxies the LLM API — never expose API keys in the browser.
-3. Define a system prompt with fantasy football context and tool/function definitions for each fantasy sub-service (roster analysis, sleeper engine, trade engine, etc.).
-4. Stream the response token-by-token into the chat for text messages.
-5. For structured card responses, either let the model call function tools that return typed payloads, or parse the model's JSON output into the `ChatMessage` card payloads.
-
----
-
-## 2. Screenshot / Vision Roster Recognition
-
-**Integration name:** Roster Screenshot Analysis (OCR + vision)
-
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: ROSTER_SCREENSHOT_ANALYSIS`
-
-**Current mock file/function:**
-- `src/services/fantasy/rosterAnalysisService.ts` — `analyzeRosterScreenshot()`
-
-**Expected input:**
-- `ChatAttachment` (image data URL)
-- Optional league scoring context
-
-**Expected return type:**
-- `UploadedRosterAnalysis` (defined in `src/types/index.ts`)
-
-**UI components that depend on it:**
-- `src/components/fantasy/RosterAnalysisCard.tsx`
-- `src/components/fantasy/PlayerCard.tsx` (rendered inside roster analysis)
-
-**Suggested implementation steps:**
-1. Send the uploaded image to a vision-capable model (GPT-4o, Claude, or a custom OCR pipeline).
-2. Extract roster rows: player name, position, NFL team, opponent, projected points.
-3. Match extracted player names against the player stats provider (see section 3) to get player IDs and projections.
-4. Compute projected team score, ceiling, biggest strength/weakness, and observations.
-5. Return an `UploadedRosterAnalysis` object.
+### Upload Infrastructure
+- **Status:** REAL (file validation + preview, no OCR/vision)
+- **Service:** `src/services/upload/uploadService.ts`
+- **Details:** Validates file type (PNG/JPG/WEBP) and size (10MB max). Creates typed `UploadedImage` records. Used by both the chat upload button and the chat input attachment button.
 
 ---
 
-## 3. NFL / Player Statistics Provider
+## STILL MOCK / NOT CONNECTED
 
-**Integration name:** Player Stats & Projections
+### Weekly Projections
+- **TODO-INTEGRATION:** `PLAYER_PROJECTIONS`
+- **Current:** `getPlayerProjection()` in `src/services/fantasy/playerStatsService.ts` returns a deterministic mock projection derived from a hash of the player ID.
+- **Mock data:** `src/mock/data.ts` still contains hardcoded mock projections for demo analysis cards.
 
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: PLAYER_STATS`
+### Advanced Stats
+- **TODO-INTEGRATION:** `PLAYER_STATS`
+- **Current:** No real stats feed. Player identity is real (Sleeper), but season stats, snap counts, targets, and advanced metrics are not available.
 
-**Current mock file/function:**
-- `src/services/fantasy/playerStatsService.ts` — `getPlayerStats()`, `getProjectedPlayers()`, `getPlayerProjection()`
+### Yahoo OAuth
+- **TODO-INTEGRATION:** `YAHOO_FANTASY`
+- **Current:** `src/services/yahoo/yahooService.ts` — all functions return mock data. Clearly labeled `IS_MOCK = true`. Clean adapter interfaces exist (`connectYahoo`, `disconnectYahoo`, `getYahooLeagues`, `getYahooRoster`, `getYahooLeagueSettings`, `getYahooMatchup`, `getYahooLeagueTeams`).
+- **No real OAuth flow is implemented.**
 
-**Expected input:**
-- Player ID(s), optional week number
+### ESPN
+- **TODO-INTEGRATION:** `ESPN_FANTASY`
+- **Current:** `src/services/fantasy/espnService.ts` — all functions return mock data or throw. Clean adapter interfaces exist (`connectEspn`, `getEspnLeagues`, `getEspnRoster`, etc.).
+- **No real ESPN auth is attempted.**
 
-**Expected return type:**
-- `Player` and `PlayerProjection` (defined in `src/types/index.ts`)
+### AI Model
+- **TODO-INTEGRATION:** `AI_MODEL`
+- **Current:** `src/services/ai/fantasyAiService.ts` uses a deterministic keyword router, not an LLM. Tool definitions and implementations are ready for the AI to call.
 
-**UI components that depend on it:**
-- All fantasy card components (PlayerCard, RosterAnalysisCard, LineupSuggestionCard, TeamOverviewCard, SleeperCard, TradeCard, MatchupCard)
+### Screenshot Analysis
+- **TODO-INTEGRATION:** `ROSTER_SCREENSHOT_ANALYSIS`
+- **TODO-INTEGRATION:** `WEEKLY_MATCHUP_ANALYSIS`
+- **Current:** `src/services/fantasy/rosterAnalysisService.ts` returns mock roster data after a delay. No OCR or vision model is connected. Upload validation and preview are real.
 
-**Suggested implementation steps:**
-1. Choose a stats/projections provider (Sleeper API, FantasyData, or a custom scraping pipeline).
-2. Create a server-side edge function that caches responses with a TTL.
-3. Map provider payloads into the shared `Player` + `PlayerProjection` types.
-4. Add a Supabase table for caching projections to reduce API calls.
+### Trade Intelligence
+- **TODO-INTEGRATION:** `TRADE_ENGINE`
+- **Current:** `src/services/fantasy/tradeService.ts` returns mock trade analysis.
 
----
+### Waiver Intelligence
+- **TODO-INTEGRATION:** `WAIVER_AVAILABILITY`
+- **Current:** `src/services/fantasy/waiverService.ts` returns mock waiver players.
 
-## 4. Yahoo Fantasy OAuth/API
+### Sleeper/Breakout Intelligence
+- **TODO-INTEGRATION:** `SLEEPER_ENGINE`
+- **Current:** `src/services/fantasy/sleeperService.ts` (the fantasy analysis service, not the Sleeper data service) returns mock sleeper recommendations.
 
-**Integration name:** Yahoo Fantasy Sports API
+### Weekly Matchup Intelligence
+- **TODO-INTEGRATION:** `WEEKLY_MATCHUP_ANALYSIS`
+- **Current:** `src/services/fantasy/matchupService.ts` returns mock matchup data.
 
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: YAHOO_FANTASY`
-
-**Current mock file/function:**
-- `src/services/yahoo/yahooService.ts` — `connectYahooFantasy()`, `disconnectYahooFantasy()`, `getConnectionStatus()`
-
-**Expected input:**
-- None (triggers OAuth redirect) / callback token on return
-
-**Expected return type:**
-- `YahooConnection` (defined in `src/types/index.ts`)
-- Future: `FantasyLeague`, `FantasyTeam`, `FantasyRoster` pulled from Yahoo
-
-**UI components that depend on it:**
-- `src/components/fantasy/YahooConnectCard.tsx`
-- `src/components/layout/Sidebar.tsx` (connection status)
-- `src/state/AppContext.tsx` (connection state)
-
-**Suggested implementation steps:**
-1. Register a Yahoo Developer app and get OAuth 2.0 credentials.
-2. Implement the OAuth flow via a Supabase Edge Function (PKCE or server-side auth code flow).
-3. Store refresh tokens securely in Supabase vault / edge function env vars.
-4. Call Yahoo Fantasy API resources: game, league, team, roster, standings, matchups.
-5. Map Yahoo payloads into `FantasyLeague` / `FantasyTeam` / `FantasyRoster` types.
-6. Persist user league data in Supabase tables with RLS.
+### Authentication / Database Persistence
+- **TODO-INTEGRATION:** `AUTH_DATABASE_PERSISTENCE`
+- **Current:** `src/services/auth/mockAuthService.ts` returns a mock user. Chat sessions and manual rosters use localStorage. No Supabase auth or database tables are used yet.
 
 ---
 
-## 5. ESPN Fantasy Integration
+## Data Flow Diagram (Current)
 
-**Integration name:** ESPN Fantasy API
+```
+Sleeper API (https://api.sleeper.app/v1/players/nfl)
+  ↓
+Sleeper Service (src/services/sleeper/sleeperService.ts)
+  ↓
+IndexedDB Cache (src/services/sleeper/sleeperCache.ts) — 24h TTL
+  ↓
+Sleeper Mapper (src/services/sleeper/sleeperMapper.ts) — validates & normalizes
+  ↓
+Normalized Player objects (src/types/index.ts)
+  ↓
+Player Search (src/services/sleeper/playerSearch.ts)
+  ↓
+PlayerSearch UI (src/components/fantasy/PlayerSearch.tsx)
+  ↓
+Roster Builder (src/components/fantasy/RosterBuilder.tsx)
+  ↓
+Manual Team Service (src/services/team/manualTeamService.ts) — localStorage
+```
 
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: ESPN_FANTASY`
+## Intended Future Data Flow
 
-**Current mock file/function:**
-- `src/services/fantasy/espnService.ts` — `fetchEspnLeague()`
-
-**Expected input:**
-- League ID, optional season year
-
-**Expected return type:**
-- `FantasyLeague` (defined in `src/types/index.ts`)
-
-**UI components that depend on it:**
-- `src/pages/LeaguePage.tsx`
-- `src/pages/MyTeamPage.tsx` (future)
-
-**Suggested implementation steps:**
-1. Implement ESPN Fantasy API auth (SWID + ESPN_S2 cookies for private leagues, public endpoint for public leagues).
-2. Create an edge function to proxy requests and cache responses.
-3. Map ESPN payloads into the shared types.
-4. Add ESPN as a connection option alongside Yahoo in the sidebar and settings.
-
----
-
-## 6. Sleeper Recommendation Engine
-
-**Integration name:** Sleeper Engine
-
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: SLEEPER_ENGINE`
-
-**Current mock file/function:**
-- `src/services/fantasy/sleeperService.ts` — `findSleeperCandidates()`
-
-**Expected input:**
-- League ID, week, roster context, scoring settings
-
-**Expected return type:**
-- `SleeperRecommendation[]` (defined in `src/types/index.ts`)
-
-**UI components that depend on it:**
-- `src/components/fantasy/SleeperCard.tsx`
-
-**Suggested implementation steps:**
-1. Pull the waiver/free-agent pool (see section 8) and all rosters from the connected platform.
-2. Score each candidate on opportunity (snap share, targets, carries), matchup (opponent EPA), and upside (red-zone / big-play rate).
-3. Use the AI model to generate reasoning text and confidence scores.
-4. Filter by recommendation type: Free Agent Target, Trade Target, Deep Sleeper, Buy Low, Sell High.
+```
+Stats Provider + Yahoo League Data + Sleeper Players
+  ↓
+Normalized Fantasy Data (shared types)
+  ↓
+Analysis Tools (src/services/ai/toolImplementations.ts)
+  ↓
+AI Model (LLM with tool/function calling)
+  ↓
+Chat Response + Visual Cards (src/components/fantasy/*)
+```
 
 ---
 
-## 7. Trade Recommendation Engine
+## Integration Details
 
-**Integration name:** Trade Engine
+### 1. AI Model Integration
+- **TODO marker:** `// TODO-INTEGRATION: AI_MODEL`
+- **Mock file:** `src/services/ai/fantasyAiService.ts`
+- **Tool definitions:** `src/services/ai/toolDefinitions.ts`
+- **Tool implementations:** `src/services/ai/toolImplementations.ts`
+- **Suggested steps:**
+  1. Choose an LLM provider (OpenAI, Anthropic, hosted model).
+  2. Create a Supabase Edge Function to proxy the LLM API.
+  3. Register the tools from `toolImplementations.ts` as function definitions.
+  4. Let the model decide which tools to call, then map results into `ChatMessage` card payloads.
 
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: TRADE_ENGINE`
+### 2. Screenshot / Vision Roster Recognition
+- **TODO marker:** `// TODO-INTEGRATION: ROSTER_SCREENSHOT_ANALYSIS`
+- **Mock file:** `src/services/fantasy/rosterAnalysisService.ts`
+- **Upload infrastructure (real):** `src/services/upload/uploadService.ts`
+- **Suggested steps:**
+  1. Send the uploaded image to a vision model.
+  2. Extract roster rows and match against Sleeper player IDs.
+  3. Return `UploadedRosterAnalysis`.
 
-**Current mock file/function:**
-- `src/services/fantasy/tradeService.ts` — `analyzeTrade()`, `buildBetterTrade()`
+### 3. NFL / Player Statistics Provider
+- **TODO marker:** `// TODO-INTEGRATION: PLAYER_STATS`
+- **TODO marker:** `// TODO-INTEGRATION: PLAYER_PROJECTIONS`
+- **Real (identity):** `src/services/sleeper/sleeperService.ts`
+- **Mock (projections):** `src/services/fantasy/playerStatsService.ts` → `getPlayerProjection()`
+- **Suggested steps:**
+  1. Integrate a projections feed (Sleeper projections, FantasyData, etc.).
+  2. Replace `getPlayerProjection()` with real data.
+  3. Add weekly stats, snap counts, targets.
 
-**Expected input:**
-- User team ID, league ID, optional seed players to give/receive
+### 4. Yahoo Fantasy OAuth/API
+- **TODO marker:** `// TODO-INTEGRATION: YAHOO_FANTASY`
+- **Mock file:** `src/services/yahoo/yahooService.ts` (`IS_MOCK = true`)
+- **Adapter interfaces:** `connectYahoo`, `disconnectYahoo`, `getYahooLeagues`, `getYahooRoster`, `getYahooLeagueSettings`, `getYahooMatchup`, `getYahooLeagueTeams`
+- **Suggested steps:**
+  1. Register a Yahoo Developer app.
+  2. Implement OAuth via a Supabase Edge Function.
+  3. Map Yahoo payloads into shared types via a `yahooMapper` module.
 
-**Expected return type:**
-- `TradeAnalysis` (defined in `src/types/index.ts`)
+### 5. ESPN Fantasy Integration
+- **TODO marker:** `// TODO-INTEGRATION: ESPN_FANTASY`
+- **Mock file:** `src/services/fantasy/espnService.ts` (`IS_MOCK = true`)
+- **Adapter interfaces:** `connectEspn`, `getEspnLeagues`, `getEspnRoster`, `getEspnLeagueSettings`, `getEspnMatchup`, `getEspnLeagueTeams`
+- **Suggested steps:**
+  1. Research current ESPN Fantasy API auth method.
+  2. Implement auth via a Supabase Edge Function.
+  3. Map ESPN payloads into shared types.
 
-**UI components that depend on it:**
-- `src/components/fantasy/TradeCard.tsx`
+### 6. Sleeper Recommendation Engine
+- **TODO marker:** `// TODO-INTEGRATION: SLEEPER_ENGINE`
+- **Mock file:** `src/services/fantasy/sleeperService.ts` (analysis, not data)
+- **Tool stub:** `sleeperTool` in `src/services/ai/toolImplementations.ts`
 
-**Suggested implementation steps:**
-1. Pull all rosters in the league from the connected platform.
-2. Identify each team's positional surpluses and needs.
-3. Value every player using season-long + weekly projections (section 3).
-4. Generate trade proposals that improve the user's expected weekly total while staying within a fairness band.
-5. Estimate acceptance likelihood from roster need fit + value balance.
-6. The "Build Better Trade" button calls `buildBetterTrade()` for a second-pass proposal.
+### 7. Trade Recommendation Engine
+- **TODO marker:** `// TODO-INTEGRATION: TRADE_ENGINE`
+- **Mock file:** `src/services/fantasy/tradeService.ts`
+- **Tool stubs:** `tradeAnalysisTool`, `tradeBuilderTool`
 
----
+### 8. Waiver Availability
+- **TODO marker:** `// TODO-INTEGRATION: WAIVER_AVAILABILITY`
+- **Mock file:** `src/services/fantasy/waiverService.ts`
+- **Tool stub:** `waiverTool`
 
-## 8. Waiver Availability
+### 9. Weekly Matchup Analysis
+- **TODO marker:** `// TODO-INTEGRATION: WEEKLY_MATCHUP_ANALYSIS`
+- **Mock file:** `src/services/fantasy/matchupService.ts`
+- **Tool stub:** `matchupTool`
 
-**Integration name:** Waiver Wire / Free Agent Pool
-
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: WAIVER_AVAILABILITY`
-
-**Current mock file/function:**
-- `src/services/fantasy/waiverService.ts` — `getWaiverAvailablePlayers()`
-
-**Expected input:**
-- League ID, position filter, week
-
-**Expected return type:**
-- `Player[]` (defined in `src/types/index.ts`)
-
-**UI components that depend on it:**
-- `src/services/fantasy/sleeperService.ts` (feeds the sleeper engine)
-- `src/components/fantasy/SleeperCard.tsx` (indirectly)
-
-**Suggested implementation steps:**
-1. Query the connected platform's free-agent / waiver pool.
-2. Filter by position, bye week, and ownership percentage.
-3. Return players the sleeper engine can score.
-
----
-
-## 9. Weekly Matchup Analysis
-
-**Integration name:** Weekly Matchup Engine
-
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: WEEKLY_MATCHUP_ANALYSIS`
-
-**Current mock file/function:**
-- `src/services/fantasy/matchupService.ts` — `analyzeWeeklyMatchup()`
-
-**Expected input:**
-- User team ID, opponent team ID, week, scoring settings
-
-**Expected return type:**
-- `WeeklyMatchup` (defined in `src/types/index.ts`)
-
-**UI components that depend on it:**
-- `src/components/fantasy/MatchupCard.tsx`
-
-**Suggested implementation steps:**
-1. Pull both rosters and scoring settings from the connected platform.
-2. Run projections for every starter on both sides (section 3).
-3. Calculate win probability via Monte Carlo simulation across projection variance.
-4. Optimize the user's lineup and surface the best move + a risky upside move.
-5. Generate matchup observations using the AI model.
-
----
-
-## 10. Authentication / Database Persistence
-
-**Integration name:** Auth + Chat Session Persistence
-
-**TODO-INTEGRATION marker:** `// TODO-INTEGRATION: AUTH_DATABASE_PERSISTENCE`
-
-**Current mock files/functions:**
-- `src/services/auth/mockAuthService.ts` — `mockSignIn()`, `mockSignUp()`, `mockSignOut()`
-- `src/services/chat/useChatStore.ts` — `useChatStore()` hook (uses localStorage)
-
-**Expected input:**
-- Email + password (sign in/up), session token (get session)
-
-**Expected return type:**
-- `MockUser` (defined in `src/types/index.ts`) — will become a Supabase auth user
-- Chat sessions: `ChatSession[]` persisted to Supabase
-
-**UI components that depend on it:**
-- `src/state/AppContext.tsx`
-- `src/components/auth/AuthModal.tsx`
-- `src/components/layout/Sidebar.tsx`
-- `src/services/chat/useChatStore.ts`
-
-**Suggested implementation steps:**
-1. Replace mock auth functions with Supabase auth calls (`signInWithPassword`, `signUp`, `signOut`, `onAuthStateChange`).
-2. Create a `chat_sessions` table in Supabase with RLS scoped to `auth.uid()`.
-3. Replace localStorage persistence in `useChatStore` with Supabase queries.
-4. Store Yahoo connection state + tokens in a secure table.
+### 10. Authentication / Database Persistence
+- **TODO marker:** `// TODO-INTEGRATION: AUTH_DATABASE_PERSISTENCE`
+- **Mock file:** `src/services/auth/mockAuthService.ts`
+- **localStorage services:** `src/services/chat/useChatStore.ts`, `src/services/team/manualTeamService.ts`
+- **Suggested steps:**
+  1. Replace mock auth with Supabase auth.
+  2. Migrate chat sessions and manual rosters to Supabase tables with RLS.
+  3. Store Yahoo/ESPN tokens securely.
 
 ---
 
 ## Recommended Order After Bolt
 
-Implement integrations in this order — each builds on the one before it:
-
-1. **Player/stat data provider** — everything else depends on projections
-2. **Screenshot roster recognition** — unblocks the core upload flow
-3. **AI model** — powers all natural language analysis
-4. **Core roster analysis** — combines stats + AI for roster breakdowns
-5. **Yahoo Fantasy integration** — brings in real league/roster data
+1. **Player/stat data provider** — projections feed to replace mock `getPlayerProjection()`
+2. **Screenshot roster recognition** — vision model for roster OCR
+3. **AI model** — LLM with tool-calling using the existing tool registry
+4. **Core roster analysis** — combine projections + AI for real roster breakdowns
+5. **Yahoo Fantasy integration** — real OAuth + API via the existing adapter
 6. **Weekly matchup engine** — requires rosters + projections
 7. **Sleeper engine** — requires waiver pool + projections + AI
 8. **Trade engine** — requires all rosters + projections
-9. **ESPN integration** — secondary platform, lower priority
-10. **Production authentication/persistence** — move from mock auth + localStorage to Supabase
+9. **ESPN integration** — secondary platform via the existing adapter
+10. **Production authentication/persistence** — Supabase auth + database tables

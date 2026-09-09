@@ -2,6 +2,7 @@ import { ImagePlus, Loader2, Send, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ChatAttachment } from '@/types';
 import { uid } from '@/services/utils/uid';
+import { validateImageFile, readAsDataUrl, ACCEPT_STRING } from '@/services/upload/uploadService';
 
 interface ChatInputProps {
   onSend: (text: string, attachments: ChatAttachment[]) => void;
@@ -17,18 +18,27 @@ export function ChatInput({ onSend, disabled, busy, pendingText }: ChatInputProp
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
+    e.target.value = '';
+
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      // Show a brief inline error — the parent handles chat-level errors.
+      console.warn('Upload validation failed:', validation.error);
+      return;
+    }
+
+    try {
+      const dataUrl = await readAsDataUrl(file);
       setAttachments((prev) => [
         ...prev,
-        { id: uid(), name: file.name, dataUrl: reader.result as string, kind: 'image' },
+        { id: uid(), name: file.name, dataUrl, kind: 'image' },
       ]);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    } catch {
+      console.warn('Failed to read uploaded file.');
+    }
   };
 
   const removeAttachment = (id: string) => {
@@ -103,7 +113,7 @@ export function ChatInput({ onSend, disabled, busy, pendingText }: ChatInputProp
           >
             <ImagePlus className="h-5 w-5" />
           </button>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+          <input ref={fileRef} type="file" accept={ACCEPT_STRING} className="hidden" onChange={handleFile} />
 
           <textarea
             value={text}

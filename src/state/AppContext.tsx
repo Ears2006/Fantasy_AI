@@ -7,7 +7,7 @@ import type { MockUser, YahooConnection } from '@/types';
 import { mockSignIn, mockSignUp, mockSignOut } from '@/services/auth/mockAuthService';
 import { connectYahooFantasy, disconnectYahooFantasy } from '@/services/yahoo/yahooService';
 
-export type AppPage = 'chat' | 'my-team' | 'league' | 'settings' | 'about' | 'how-it-works';
+export type AppPage = 'chat' | 'my-team' | 'league' | 'league-settings' | 'settings' | 'about' | 'how-it-works';
 
 interface AppState {
   user: MockUser | null;

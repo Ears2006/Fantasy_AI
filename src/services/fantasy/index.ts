@@ -1,11 +1,9 @@
-// Barrel export for the mock service layer.
-// Lets components import from a single entry point:
-//   import { analyzeRosterScreenshot, findSleeperCandidates } from '@/services/fantasy';
-//
-// When real implementations replace the mock files, this barrel stays the same.
+// Barrel export for the fantasy service layer.
+// Player identity data comes from the Sleeper service (real data).
+// Projections and analysis engines are still mock.
 
+export { getPlayerStats, getPlayerProjection } from './playerStatsService';
 export { analyzeRosterScreenshot } from './rosterAnalysisService';
-export { getPlayerStats, getProjectedPlayers, getPlayerProjection } from './playerStatsService';
 export { analyzeWeeklyMatchup } from './matchupService';
 export { findSleeperCandidates } from './sleeperService';
 export { analyzeTrade, buildBetterTrade } from './tradeService';

@@ -25,6 +25,10 @@ export type RosterSlot =
   | 'QB' | 'RB1' | 'RB2' | 'WR1' | 'WR2' | 'TE'
   | 'FLEX' | 'D/ST' | 'K' | 'BENCH';
 
+// Slot types the manual roster builder can assign.
+export type ManualRosterSlot =
+  | 'QB' | 'RB' | 'WR' | 'TE' | 'FLEX' | 'K' | 'D/ST' | 'BENCH';
+
 export interface Player {
   id: string;
   name: string;
@@ -67,12 +71,25 @@ export interface LeagueScoringSettings {
   format: ScoringFormat;
   passingTdPoints: number;
   passingYardsPerPoint: number;
-  receptionPoints: number;
+  passingYardsBonusThreshold?: number;
+  interceptionPoints: number;
   rushingTdPoints: number;
   rushingYardsPerPoint: number;
+  rushingYardsBonusThreshold?: number;
+  receivingYardsPerPoint: number;
+  receivingTdPoints: number;
+  receptionPoints: number;
   fumblePoints: number;
-  interceptionPoints: number;
   teams: number;
+  // Roster slot configuration
+  qbSlots: number;
+  rbSlots: number;
+  wrSlots: number;
+  teSlots: number;
+  flexSlots: number;
+  benchSlots: number;
+  kickerEnabled: boolean;
+  defenseEnabled: boolean;
 }
 
 export interface FantasyRoster {
@@ -224,6 +241,45 @@ export interface ChatSession {
   messages: ChatMessage[];
   createdAt: number;
   updatedAt: number;
+}
+
+// ---- Manual roster / team ----
+
+export interface ManualRosterEntry {
+  id: string; // unique entry id
+  playerId: string; // Sleeper player ID
+  slot: ManualRosterSlot;
+}
+
+export interface ManualTeam {
+  id: string;
+  name: string;
+  leagueId: string;
+  roster: ManualRosterEntry[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ManualLeague {
+  id: string;
+  name: string;
+  scoring: LeagueScoringSettings;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ---- Uploaded image ----
+
+export type UploadAnalysisStatus = 'pending' | 'analyzing' | 'done' | 'error';
+
+export interface UploadedImage {
+  id: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  previewUrl: string;
+  createdAt: number;
+  analysisStatus: UploadAnalysisStatus;
 }
 
 // ---- Auth ----

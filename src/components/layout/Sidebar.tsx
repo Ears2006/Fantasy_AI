@@ -6,6 +6,7 @@ import {
   LogOut,
   MessageSquarePlus,
   Settings as SettingsIcon,
+  Settings2,
   Shield,
   Trophy,
   UserPlus,
@@ -145,6 +146,7 @@ export function Sidebar({
             <ul className="space-y-0.5">
               <SidebarItem icon={<LayoutGrid className="h-4 w-4" />} label="My Team" onClick={() => navTo('my-team')} />
               <SidebarItem icon={<Trophy className="h-4 w-4" />} label="League" onClick={() => navTo('league')} />
+              <SidebarItem icon={<Settings2 className="h-4 w-4" />} label="League Settings" onClick={() => navTo('league-settings')} />
               <SidebarItem icon={<SettingsIcon className="h-4 w-4" />} label="Settings" onClick={() => navTo('settings')} />
               <YahooStatus connected={yahoo.connected} />
             </ul>

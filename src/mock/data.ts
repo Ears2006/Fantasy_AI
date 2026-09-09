@@ -11,8 +11,20 @@ import type {
   WeeklyMatchup,
 } from '@/types';
 
-// Centralized mock data. The service layer (services/fantasy/*.ts) reads from
-// these so the UI never imports raw mock objects directly.
+// Centralized DEMO / MOCK data for fantasy analysis features.
+//
+// IMPORTANT: Player identity data (name, position, NFL team) is now REAL
+// and comes from the Sleeper API via src/services/sleeper/. The mock
+// players below are used ONLY for demo analysis cards that haven't been
+// connected to real projections yet. Do NOT use mockPlayers for real
+// player lookups — use getPlayerById() from the Sleeper service instead.
+//
+// The following are still MOCK and should not be presented as real:
+// - Weekly projections (TODO-INTEGRATION: PLAYER_PROJECTIONS)
+// - Sleeper recommendations (TODO-INTEGRATION: SLEEPER_ENGINE)
+// - Trade analysis (TODO-INTEGRATION: TRADE_ENGINE)
+// - Weekly matchup analysis (TODO-INTEGRATION: WEEKLY_MATCHUP_ANALYSIS)
+// - Roster screenshot analysis (TODO-INTEGRATION: ROSTER_SCREENSHOT_ANALYSIS)
 
 export const mockLeague = {
   id: 'league-1',
@@ -24,9 +36,19 @@ export const mockLeague = {
     receptionPoints: 0.5,
     rushingTdPoints: 6,
     rushingYardsPerPoint: 10,
+    receivingYardsPerPoint: 10,
+    receivingTdPoints: 6,
     fumblePoints: -2,
     interceptionPoints: -2,
     teams: 12,
+    qbSlots: 1,
+    rbSlots: 2,
+    wrSlots: 2,
+    teSlots: 1,
+    flexSlots: 1,
+    benchSlots: 6,
+    kickerEnabled: true,
+    defenseEnabled: true,
   },
   currentWeek: 3,
 } as const;
@@ -56,7 +78,11 @@ const mkRosterPlayer = (
   recommendation?: string,
 ): RosterPlayer => ({ ...player, slot, projection, recommendation });
 
-// ---- Players ----
+// ---- Demo players ----
+// These are used ONLY for mock analysis card demos (roster analysis,
+// sleeper cards, trade cards, matchup cards). Real player lookups
+// use the Sleeper service — do not use mockPlayers for actual identity.
+// TODO-INTEGRATION: PLAYER_PROJECTIONS — projections below are mock.
 
 export const mockPlayers: Player[] = [
   mkPlayer('p1', 'Christian McCaffrey', 'RB', 'SF', 'vs ARI', 'Strong Start'),
