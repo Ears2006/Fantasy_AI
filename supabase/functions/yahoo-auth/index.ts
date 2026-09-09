@@ -294,9 +294,13 @@ function setSessionCookie(headers: Headers, sessionKey: string): void {
 }
 
 function getRedirectUri(url: URL): string {
-  // The callback URL is this same edge function with ?action=callback
-  const base = `${url.protocol}//${url.host}`;
-  return `${base}/functions/v1/yahoo-auth?action=callback`;
+  // The callback URL is this same edge function with ?action=callback.
+  // Always use https:// — Supabase's gateway terminates TLS before reaching
+  // the edge function, so url.protocol may report "http:". Yahoo requires
+  // the redirect_uri to exactly match what's registered in the developer app,
+  // which must be the HTTPS URL.
+  const host = url.host;
+  return `https://${host}/functions/v1/yahoo-auth?action=callback`;
 }
 
 function generateState(sessionKey: string): string {

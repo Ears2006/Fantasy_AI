@@ -64,15 +64,18 @@ export function connectYahoo(): Promise<YahooConnection> {
       return;
     }
 
+    let settled = false;
+
     const messageHandler = (event: MessageEvent) => {
       if (event.data?.type !== 'yahoo-callback') return;
+      settled = true;
       window.removeEventListener('message', messageHandler);
+      clearInterval(pollId);
       clearTimeout(timeoutId);
 
       if (event.data.error) {
         reject(new Error(`Yahoo authentication failed: ${event.data.error}`));
       } else if (event.data.success) {
-        // Check status to get connection details
         checkConnectionStatus().then(resolve).catch(reject);
       } else {
         reject(new Error('Yahoo authentication failed: unknown error'));
@@ -80,11 +83,29 @@ export function connectYahoo(): Promise<YahooConnection> {
     };
 
     window.addEventListener('message', messageHandler);
+
+    // Poll for popup closure — if the user closes the popup without
+    // completing OAuth (e.g. Yahoo showed an error page), reject
+    // with a clear message instead of waiting for the timeout.
+    const pollId = setInterval(() => {
+      if (popup.closed && !settled) {
+        settled = true;
+        window.removeEventListener('message', messageHandler);
+        clearInterval(pollId);
+        clearTimeout(timeoutId);
+        reject(new Error('Yahoo authentication window was closed before completing. This may indicate a Yahoo configuration issue — verify the callback URL in your Yahoo Developer app matches the expected URL.'));
+      }
+    }, 500);
+
     const timeoutId = setTimeout(() => {
-      window.removeEventListener('message', messageHandler);
-      if (!popup.closed) popup.close();
-      reject(new Error('Yahoo authentication timed out.'));
-    }, 120000); // 2 minute timeout
+      if (!settled) {
+        settled = true;
+        window.removeEventListener('message', messageHandler);
+        clearInterval(pollId);
+        if (!popup.closed) popup.close();
+        reject(new Error('Yahoo authentication timed out.'));
+      }
+    }, 120000);
   });
 }
 
