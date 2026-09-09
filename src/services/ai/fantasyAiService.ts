@@ -1,22 +1,22 @@
-// Mock AI service — the central "generateFantasyResponse" router.
-// This is the single place the chat experience asks for an analysis. It maps
-// a user intent to the right fantasy sub-service and returns ChatMessages.
+// Chat response generator — routes user intent to real data or honest
+// "not connected" responses.
+//
+// IMPORTANT: This does NOT fabricate fantasy advice. If an analysis engine
+// isn't connected, it says so clearly. Real data (player search, projections
+// when available) is returned.
+//
+// // TODO-INTEGRATION: AI_MODEL
+// When the AI model is connected, this deterministic router will be replaced
+// by an LLM that calls the tool registry (toolImplementations.ts).
 
-import type {
-  ChatAttachment,
-  ChatMessage,
-  PlayerRecommendation,
-  RosterPlayer,
-  UploadedRosterAnalysis,
-} from '@/types';
-import { mockSleepers, mockTradeAnalysis, mockUserTeam, mockWeeklyMatchup } from '@/mock/data';
-import { analyzeRosterScreenshot } from '@/services/fantasy/rosterAnalysisService';
-import { analyzeTrade, buildBetterTrade } from '@/services/fantasy/tradeService';
-import { analyzeWeeklyMatchup } from '@/services/fantasy/matchupService';
-import { findSleeperCandidates } from '@/services/fantasy/sleeperService';
+import type { ChatAttachment, ChatMessage } from '@/types';
+import { searchPlayers } from '@/services/sleeper/playerSearch';
+import { getPlayerById } from '@/services/sleeper/sleeperService';
+import { getFantasyDataStatus, getPlayerFantasyProfile } from '@/services/fantasyData/fantasyDataService';
 import { uid } from '@/services/utils/uid';
 
 export type FantasyIntent =
+  | 'player-lookup'
   | 'start-sit'
   | 'waiver-targets'
   | 'trade-advice'
@@ -30,6 +30,7 @@ export type FantasyIntent =
   | 'general';
 
 const intentKeywords: Record<FantasyIntent, string[]> = {
+  'player-lookup': ['who is', 'tell me about', 'player'],
   'start-sit': ['start', 'sit', 'lineup', 'who should i'],
   'waiver-targets': ['waiver', 'free agent', 'pickup', 'stream'],
   'trade-advice': ['trade', 'deal', 'offer'],
@@ -54,93 +55,85 @@ export function detectIntent(text: string): FantasyIntent {
 
 /**
  * // TODO-INTEGRATION: AI_MODEL
- *
- * FUTURE IMPLEMENTATION:
- * 1. Send the user's message + roster/league context to an LLM
- *    (OpenAI, Anthropic, or a hosted model) with a fantasy-football system
- *    prompt and tool/function definitions for each fantasy sub-service.
- * 2. Let the model decide which analysis cards to surface, or use a
- *    deterministic router here and have the model only write the prose.
- * 3. Stream the model's text response token-by-token into a user message.
- *
- * INPUT:  user text, optional attachments, chat history, league context.
- * OUTPUT: ChatMessage[] — one or more structured assistant messages.
- * MOCK REPLACEMENT: generateFantasyResponse().
+ * Generates a chat response. Returns real data when available, honest
+ * "not connected" messages for unfinished analysis engines.
  */
 export async function generateFantasyResponse(
   text: string,
   attachments?: ChatAttachment[],
 ): Promise<ChatMessage[]> {
   const intent = detectIntent(text);
+  const dataStatus = await getFantasyDataStatus();
 
-  // Roster screenshot path — image present.
+  // Screenshot upload — still mock analysis (no OCR/vision connected)
   if (attachments && attachments.length > 0) {
-    const analysis = await analyzeRosterScreenshot(attachments[0]);
     return [
-      msg('assistant', "I've analyzed your roster screenshot. Here's what I found."),
-      rosterAnalysisMessage(analysis),
+      msg('assistant', 'I received your screenshot, but the roster screenshot analysis engine (OCR/vision) is not connected yet.'),
+      msg('assistant', '// TODO-INTEGRATION: ROSTER_SCREENSHOT_ANALYSIS — I can identify players by name if you type them, and I can look up real projections, rankings, and injuries once the FantasyPros data provider is configured.'),
     ];
   }
 
   switch (intent) {
+    case 'player-lookup': {
+      // Try to extract a player name from the message and search.
+      const query = extractPlayerName(text);
+      if (query) {
+        const results = await searchPlayers({ query, limit: 5 });
+        if (results.length > 0) {
+          const playerNames = results.map((r) => `${r.player.name} (${r.player.position}, ${r.player.nflTeam})`).join(', ');
+          return [
+            msg('assistant', `I found these players: ${playerNames}`),
+            msg('assistant', dataStatus.available
+              ? 'I can pull projections, rankings, injury status, and recent news for any of these players. Ask about a specific player for full details.'
+              : 'Player identity data is from Sleeper (real). Fantasy projections, rankings, and injuries require the FantasyPros data provider to be configured.'),
+          ];
+        }
+      }
+      return [msg('assistant', 'I can search for any NFL player. Try asking "Who is Patrick Mahomes?" or search in the Manual Team builder.')];
+    }
+
     case 'start-sit':
     case 'optimize-lineup':
-      return [msg('assistant', 'Here\'s your optimal lineup for this week.'), lineupMessage()];
+      return [
+        msg('assistant', 'I can identify the players on your roster and load their real projections, rankings, and injury status — but the start/sit reasoning engine has not been connected yet.'),
+        msg('assistant', dataStatus.available
+          ? 'FantasyPros data IS available. I can gather projection and ranking context for your players. Once the AI model is connected, I will provide actual start/sit recommendations.'
+          : 'To enable data-driven start/sit analysis: (1) configure the FantasyPros API key, (2) connect the AI model. See docs/INTEGRATION_ROADMAP.md.'),
+      ];
 
     case 'waiver-targets':
-    case 'find-upgrades': {
-      const sleepers = await findSleeperCandidates();
+    case 'find-upgrades':
       return [
-        msg('assistant', 'Here are the top waiver targets to consider this week.'),
-        sleepersMessage(sleepers),
+        msg('assistant', 'Waiver wire analysis requires the AI reasoning engine, which is not connected yet. I can search for players and pull their real data once the FantasyPros provider is configured.'),
       ];
-    }
 
     case 'trade-advice':
-    case 'trade-ideas': {
-      const trade = await analyzeTrade();
+    case 'trade-ideas':
+    case 'build-better-trade':
       return [
-        msg('assistant', 'I evaluated a trade for you. Here\'s the breakdown.'),
-        tradeMessage(trade),
+        msg('assistant', 'Trade analysis requires the AI reasoning engine, which is not connected yet. I can look up real player projections and rankings to provide data context once the FantasyPros provider is configured.'),
       ];
-    }
 
-    case 'build-better-trade': {
-      const trade = await buildBetterTrade();
+    case 'weekly-matchup':
       return [
-        msg('assistant', 'Here\'s a stronger trade structure that tilts value your way.'),
-        tradeMessage(trade),
+        msg('assistant', 'Weekly matchup analysis requires the AI reasoning engine, which is not connected yet. Player projection data is available for the AI to analyze once the model is connected.'),
       ];
-    }
 
-    case 'weekly-matchup': {
-      const matchup = await analyzeWeeklyMatchup();
+    case 'sleepers':
       return [
-        msg('assistant', "Here's your weekly matchup analysis and recommended moves."),
-        matchupMessage(matchup),
+        msg('assistant', 'Sleeper recommendation analysis requires the AI reasoning engine, which is not connected yet. I can provide real player projections and rankings as data context once the FantasyPros provider is configured.'),
       ];
-    }
-
-    case 'sleepers': {
-      const sleepers = await findSleeperCandidates();
-      return [
-        msg('assistant', 'These are my top sleeper picks with AI upside projections.'),
-        sleepersMessage(sleepers),
-      ];
-    }
 
     case 'yahoo-connected':
       return [
-        msg('assistant', 'I found a few things worth looking at this week.'),
-        sleepersMessage(mockSleepers),
-        matchupMessage(mockWeeklyMatchup),
+        msg('assistant', 'Yahoo Fantasy connection is mocked. When real Yahoo OAuth is connected, I will sync your league and roster automatically.'),
       ];
 
     default:
       return [
         msg(
           'assistant',
-          'I can help with start/sit, waiver targets, trade advice, sleeper picks, and weekly matchups. Upload a roster screenshot or ask me a question to get started.',
+          'I can help with fantasy football analysis. Here is what works right now:\n\n• Player search — real NFL player data from Sleeper\n• Manual roster building — My Team → Manual Team\n• League settings configuration\n\nFeatures that need the AI model + FantasyPros data provider:\n• Start/sit analysis\n• Trade analysis\n• Waiver recommendations\n• Sleeper picks\n• Weekly matchup analysis\n\nUpload a roster screenshot or ask about a player to get started.',
         ),
       ];
   }
@@ -148,15 +141,11 @@ export async function generateFantasyResponse(
 
 /**
  * // TODO-INTEGRATION: AI_MODEL
- * Dedicated entry for the "Yahoo connected" flow — returns a rich set of
- * cards to demonstrate the post-connection experience.
+ * Dedicated entry for the "Yahoo connected" flow.
  */
 export async function generatePostConnectionResponse(): Promise<ChatMessage[]> {
   return [
-    msg('assistant', 'I found a few things worth looking at this week.'),
-    sleepersMessage(mockSleepers),
-    tradeMessage(mockTradeAnalysis),
-    matchupMessage(mockWeeklyMatchup),
+    msg('assistant', 'Yahoo Fantasy connection is mocked for demonstration. When real Yahoo OAuth is connected, I will sync your league, pull your roster, and provide data-driven analysis.'),
   ];
 }
 
@@ -166,40 +155,22 @@ function msg(kind: ChatMessage['kind'], text: string): ChatMessage {
   return { id: uid(), kind, text, createdAt: Date.now() };
 }
 
-function rosterAnalysisMessage(analysis: UploadedRosterAnalysis): ChatMessage {
-  return { id: uid(), kind: 'roster-analysis', rosterAnalysis: analysis, createdAt: Date.now() };
+function extractPlayerName(text: string): string | null {
+  // Simple extraction: look for "who is <name>" or "tell me about <name>"
+  const patterns = [
+    /who is (.+)/i,
+    /tell me about (.+)/i,
+    /player (.+)/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      // Clean up the extracted name
+      return match[1].replace(/[?.!]/g, '').trim();
+    }
+  }
+  return null;
 }
 
-function sleepersMessage(sleepers: ChatMessage['sleepers']): ChatMessage {
-  return { id: uid(), kind: 'sleeper-recommendation', sleepers, createdAt: Date.now() };
-}
-
-function tradeMessage(tradeAnalysis: ChatMessage['tradeAnalysis']): ChatMessage {
-  return { id: uid(), kind: 'trade-analysis', tradeAnalysis, createdAt: Date.now() };
-}
-
-function matchupMessage(matchup: ChatMessage['matchup']): ChatMessage {
-  return { id: uid(), kind: 'matchup-analysis', matchup, createdAt: Date.now() };
-}
-
-function lineupMessage(): ChatMessage {
-  const starters = mockUserTeam.roster.players.filter((p) => p.slot !== 'BENCH');
-  const bench = mockUserTeam.roster.players.filter((p) => p.slot === 'BENCH');
-  const expectedTotal = starters.reduce((sum, p) => sum + p.projection.projectedPoints, 0);
-  const recommendations: PlayerRecommendation[] = starters.map((p) => ({
-    player: p,
-    projection: p.projection,
-    status: p.status ?? 'Start',
-    reason: p.recommendation ?? 'Solid start this week.',
-  }));
-  return {
-    id: uid(),
-    kind: 'lineup-suggestion',
-    lineupSuggestion: { starters, bench, expectedTotal, notes: 'Optimized for floor + ceiling balance.' },
-    playerRecommendations: recommendations,
-    createdAt: Date.now(),
-  };
-}
-
-// Re-export for components that need a typed RosterPlayer reference.
-export type { RosterPlayer };
+// Re-export player profile for convenience
+export { getPlayerFantasyProfile, getPlayerById };

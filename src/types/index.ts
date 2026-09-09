@@ -282,6 +282,124 @@ export interface UploadedImage {
   analysisStatus: UploadAnalysisStatus;
 }
 
+// ---- Player external IDs / crosswalk ----
+
+export interface PlayerExternalIds {
+  sleeper?: string;
+  fantasyPros?: string;
+  yahoo?: string;
+  espn?: string;
+}
+
+// ---- Fantasy data types (provider-neutral) ----
+
+/** Raw statistical line for a player in a given week. */
+export interface PlayerStats {
+  playerId: string;
+  passingYards?: number;
+  passingTDs?: number;
+  interceptions?: number;
+  passingAttempts?: number;
+  completions?: number;
+  rushingAttempts?: number;
+  rushingYards?: number;
+  rushingTDs?: number;
+  targets?: number;
+  receptions?: number;
+  receivingYards?: number;
+  receivingTDs?: number;
+  fumbles?: number;
+  fieldGoalsMade?: number;
+  fieldGoalsAttempted?: number;
+  extraPointsMade?: number;
+  extraPointsAttempted?: number;
+  defensiveSacks?: number;
+  defensiveInterceptions?: number;
+  defensiveFumblesRecovered?: number;
+  defensiveTDs?: number;
+  pointsAllowed?: number;
+  yardsAllowed?: number;
+}
+
+/** Weekly projection for a player from a fantasy data provider. */
+export interface PlayerWeeklyProjection {
+  playerId: string;
+  providerPlayerId?: string;
+  season: number;
+  week: number;
+  projectedFantasyPoints: number;
+  stats: PlayerStats;
+  provider: string;
+  scoringFormat: ScoringFormat;
+  updatedAt: number;
+}
+
+/** Actual fantasy performance for a player in a completed week. */
+export interface PlayerFantasyPerformance {
+  playerId: string;
+  season: number;
+  week: number;
+  fantasyPoints: number;
+  stats: PlayerStats;
+  scoringFormat: ScoringFormat;
+  updatedAt: number;
+}
+
+/** Expert consensus ranking for a player. */
+export interface PlayerRanking {
+  playerId: string;
+  position: FantasyPosition;
+  overallRank?: number;
+  positionalRank: number;
+  tier?: number;
+  scoringFormat: ScoringFormat;
+  week: number;
+  source: string;
+  updatedAt: number;
+}
+
+/** Player injury information. */
+export interface PlayerInjury {
+  playerId: string;
+  status: string;
+  bodyPart?: string;
+  practiceStatus?: string;
+  description?: string;
+  updatedAt: number;
+}
+
+/** Player news item. */
+export interface PlayerNews {
+  playerId: string;
+  headline: string;
+  summary: string;
+  publishedAt: number;
+  source: string;
+}
+
+/** Aggregated fantasy profile combining all available data. */
+export interface FantasyPlayerProfile {
+  player: Player;
+  externalIds: PlayerExternalIds;
+  weeklyProjection?: PlayerWeeklyProjection;
+  recentPerformance?: PlayerFantasyPerformance[];
+  ranking?: PlayerRanking;
+  injury?: PlayerInjury;
+  news?: PlayerNews[];
+  // Flags indicating which sources are available vs unavailable
+  sources: {
+    sleeper: boolean;
+    fantasyPros: boolean;
+  };
+}
+
+/** Provider availability / connection status. */
+export interface FantasyDataStatus {
+  available: boolean;
+  provider: string;
+  message: string;
+}
+
 // ---- Auth ----
 
 export interface MockUser {

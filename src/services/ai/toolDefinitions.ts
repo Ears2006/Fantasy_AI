@@ -1,24 +1,21 @@
 // Chat tool architecture — typed interfaces for future AI tool/function calling.
-// The future AI model will invoke these tools to gather data and perform
-// analysis. Each tool has a typed input contract and output contract.
-//
-// No tool here produces fake analysis results. Unfinished tools return
-// an explicit "not connected" status so the AI (and the user) knows the
-// capability isn't available yet.
-//
-// These tools are framework-agnostic — they do not import React components
-// or UI types. The AI service calls them, then the chat layer maps the
-// results into ChatMessage card payloads.
+// Updated to consume the real fantasy data layer.
 
 import type {
   Player,
   PlayerProjection,
+  PlayerWeeklyProjection,
+  PlayerFantasyPerformance,
+  PlayerRanking,
+  PlayerInjury,
+  PlayerNews,
+  FantasyPlayerProfile,
   WeeklyMatchup,
   SleeperRecommendation,
   TradeAnalysis,
   UploadedRosterAnalysis,
   LeagueScoringSettings,
-  FantasyTeam,
+  ScoringFormat,
 } from '@/types';
 
 // ---- Tool status ----
@@ -42,6 +39,41 @@ export interface PlayerSearchInput {
 
 export interface PlayerInfoInput {
   playerId: string;
+}
+
+export interface PlayerProjectionInput {
+  playerId: string;
+  season?: number;
+  week?: number;
+  scoringFormat?: ScoringFormat;
+}
+
+export interface PlayerPerformanceInput {
+  playerId: string;
+  season?: number;
+  numberOfWeeks?: number;
+  scoringFormat?: ScoringFormat;
+}
+
+export interface PlayerRankingInput {
+  playerId: string;
+  week?: number;
+  scoringFormat?: ScoringFormat;
+}
+
+export interface PlayerInjuryInput {
+  playerId: string;
+}
+
+export interface PlayerNewsInput {
+  playerId: string;
+}
+
+export interface PlayerProfileInput {
+  playerId: string;
+  season?: number;
+  week?: number;
+  scoringFormat?: ScoringFormat;
 }
 
 export interface StartSitInput {
@@ -97,9 +129,41 @@ export interface PlayerInfoOutput {
   projection: PlayerProjection | null;
 }
 
+export interface PlayerProjectionOutput {
+  projection: PlayerWeeklyProjection | null;
+  available: boolean;
+}
+
+export interface PlayerPerformanceOutput {
+  performances: PlayerFantasyPerformance[];
+  available: boolean;
+}
+
+export interface PlayerRankingOutput {
+  ranking: PlayerRanking | null;
+  available: boolean;
+}
+
+export interface PlayerInjuryOutput {
+  injury: PlayerInjury | null;
+  available: boolean;
+}
+
+export interface PlayerNewsOutput {
+  news: PlayerNews[];
+  available: boolean;
+}
+
+export interface PlayerProfileOutput {
+  profile: FantasyPlayerProfile;
+}
+
 export interface StartSitOutput {
   starters: Player[];
   bench: Player[];
+  projections: PlayerWeeklyProjection[];
+  injuries: PlayerInjury[];
+  rankings: PlayerRanking[];
   reasoning: string;
 }
 
@@ -136,12 +200,16 @@ export interface ToolDefinition<I, O> {
 }
 
 // ---- Tool registry ----
-// Each tool is registered here. Real implementations replace the stubs.
-// The AI service imports this registry to know which tools are available.
 
 export const TOOL_NAMES = {
   PLAYER_SEARCH: 'player_search',
   PLAYER_INFO: 'player_info',
+  PLAYER_PROJECTION: 'player_projection',
+  PLAYER_PERFORMANCE: 'player_recent_performance',
+  PLAYER_RANKINGS: 'player_rankings',
+  PLAYER_INJURY: 'player_injury',
+  PLAYER_NEWS: 'player_news',
+  PLAYER_PROFILE: 'player_profile',
   START_SIT: 'start_sit_analysis',
   WAIVER: 'waiver_analysis',
   TRADE_ANALYSIS: 'trade_analysis',
@@ -151,7 +219,7 @@ export const TOOL_NAMES = {
   ROSTER: 'roster_analysis',
 } as const;
 
-// ---- Helper for not-connected results ----
+// ---- Helpers ----
 
 export function notConnected(toolName: string, message: string): ToolResult<never> {
   return {
@@ -167,16 +235,3 @@ export function okResult<T>(data: T, message?: string): ToolResult<T> {
 export function errorResult(message: string): ToolResult<never> {
   return { status: 'error', message };
 }
-
-// ---- Type re-exports for the AI service ----
-
-export type {
-  Player,
-  PlayerProjection,
-  WeeklyMatchup,
-  SleeperRecommendation,
-  TradeAnalysis,
-  UploadedRosterAnalysis,
-  LeagueScoringSettings,
-  FantasyTeam,
-};
