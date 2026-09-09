@@ -145,7 +145,8 @@ export async function generateFantasyResponse(
  */
 export async function generatePostConnectionResponse(): Promise<ChatMessage[]> {
   return [
-    msg('assistant', 'Yahoo Fantasy connection is mocked for demonstration. When real Yahoo OAuth is connected, I will sync your league, pull your roster, and provide data-driven analysis.'),
+    msg('assistant', 'Yahoo Fantasy is now connected. I can pull your real league settings, team roster, and matchups from Yahoo. Player identity data is cross-referenced with Sleeper and FantasyPros.'),
+    msg('assistant', 'Select a league in the My Team page to get started. Once the AI reasoning model is connected, I will provide data-driven start/sit, trade, and waiver analysis using your real Yahoo roster.'),
   ];
 }
 

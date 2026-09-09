@@ -1,170 +1,354 @@
-// Yahoo Fantasy Sports adapter layer.
+// Yahoo Fantasy Sports service — REAL implementation.
+// Replaces the previous mock service.
 //
-// This file defines the clean interface that the UI and AI tools call.
-// The current implementation is MOCK — all functions return fake data
-// and are clearly labeled. When real Yahoo OAuth is connected, only
-// the internal function bodies change; the signatures and return types
-// stay the same.
+// This module is the provider-neutral adapter that components call.
+// It delegates to yahooApi.ts (HTTP) and yahooMapper.ts (data transformation).
+//
+// OAuth tokens are stored server-side and never exposed to the frontend.
+// The browser is tracked via an HTTP-only session cookie managed by the edge function.
 //
 // // TODO-INTEGRATION: YAHOO_FANTASY
-//
-// FUTURE IMPLEMENTATION:
-// 1. Redirect the user through Yahoo OAuth 2.0 (PKCE flow via a Supabase
-//    Edge Function that handles the token exchange).
-// 2. Store refresh tokens securely in Supabase vault / edge function env.
-// 3. Call Yahoo Fantasy API resources:
-//    - game.meta / game.league / league.settings
-//    - league.teams / team.roster / league.standings
-//    - league.matchup
-// 4. Map Yahoo payloads into the shared types via a yahooMapper module.
-// 5. Persist league data in Supabase tables with RLS.
-//
-// No API keys or secrets are stored in this file.
+// To activate: set YAHOO_CLIENT_ID and YAHOO_CLIENT_SECRET secrets on Supabase.
+// Register the callback URL in your Yahoo Developer app (see docs/INTEGRATION_ROADMAP.md).
 
 import type {
-  FantasyLeague,
-  FantasyRoster,
-  FantasyTeam,
-  LeagueScoringSettings,
-  WeeklyMatchup,
   YahooConnection,
-  ScoringFormat,
+  ProviderLeague,
+  ProviderTeam,
+  ProviderRosterEntry,
+  ProviderMatchup,
+  YahooLeagueSettings,
+  CrosswalkDiagnostic,
+  Player,
+  LeagueScoringSettings,
 } from '@/types';
-import { mockLeagueFull, mockUserTeam, mockWeeklyMatchup } from '@/mock/data';
+import {
+  getAuthStartUrl,
+  fetchAuthStatus,
+  disconnectYahoo as apiDisconnect,
+  fetchYahooLeagues,
+  fetchYahooLeagueSettings,
+  fetchYahooLeagueTeams,
+  fetchYahooUserTeam,
+  fetchYahooRoster,
+  fetchYahooMatchup,
+  fetchYahooLeaguePlayers,
+  YahooApiError,
+  type YahooAuthStatusResponse,
+} from './yahooApi';
+import {
+  mapYahooLeagues,
+  mapYahooLeagueSettings,
+  mapYahooTeams,
+  mapYahooUserTeam,
+  mapYahooRoster,
+  mapYahooMatchup,
+} from './yahooMapper';
+import { getCurrentSeason } from '@/services/utils/season';
+import { getAllPlayers } from '@/services/sleeper/sleeperService';
+import { normalizePosition, normalizeTeam } from '@/services/fantasyData/fantasyDataMapper';
 
-const IS_MOCK = true;
-
-// ---- Connection ----
+// ---- OAuth ----
 
 /**
- * // TODO-INTEGRATION: YAHOO_FANTASY
- * MOCK: Simulates a Yahoo OAuth connection.
- * Real: Triggers OAuth redirect, exchanges code for tokens, fetches user games.
+ * Opens the Yahoo OAuth authorization page in a popup window.
+ * Returns a promise that resolves when the popup sends a callback message.
  */
-export async function connectYahoo(): Promise<YahooConnection> {
-  if (IS_MOCK) {
-    await delay(900);
+export function connectYahoo(): Promise<YahooConnection> {
+  return new Promise((resolve, reject) => {
+    const authUrl = getAuthStartUrl();
+    const popup = window.open(authUrl, 'yahoo-auth', 'width=600,height=700,scrollbars=yes');
+
+    if (!popup) {
+      reject(new Error('Popup blocked. Please allow popups for Yahoo authentication.'));
+      return;
+    }
+
+    const messageHandler = (event: MessageEvent) => {
+      if (event.data?.type !== 'yahoo-callback') return;
+      window.removeEventListener('message', messageHandler);
+      clearTimeout(timeoutId);
+
+      if (event.data.error) {
+        reject(new Error(`Yahoo authentication failed: ${event.data.error}`));
+      } else if (event.data.success) {
+        // Check status to get connection details
+        checkConnectionStatus().then(resolve).catch(reject);
+      } else {
+        reject(new Error('Yahoo authentication failed: unknown error'));
+      }
+    };
+
+    window.addEventListener('message', messageHandler);
+    const timeoutId = setTimeout(() => {
+      window.removeEventListener('message', messageHandler);
+      if (!popup.closed) popup.close();
+      reject(new Error('Yahoo authentication timed out.'));
+    }, 120000); // 2 minute timeout
+  });
+}
+
+/**
+ * Checks the current Yahoo connection status by calling the edge function.
+ */
+export async function checkConnectionStatus(): Promise<YahooConnection> {
+  try {
+    const status = await fetchAuthStatus();
+    return mapStatusResponse(status);
+  } catch {
     return {
-      connected: true,
-      leagueName: 'Example League',
-      format: 'Half-PPR',
-      rosterCount: 17,
+      connected: false,
+      status: 'error',
+      error: 'Failed to check Yahoo connection status.',
     };
   }
-  // Real implementation would redirect to Yahoo OAuth here.
-  throw new Error('Yahoo OAuth not implemented');
 }
 
 /**
- * // TODO-INTEGRATION: YAHOO_FANTASY
- * MOCK: Clears mock connection state.
- * Real: Revokes tokens and clears stored credentials.
+ * Disconnects Yahoo — deletes stored tokens server-side.
  */
 export async function disconnectYahoo(): Promise<YahooConnection> {
-  await delay(400);
-  return { connected: false };
-}
-
-/**
- * // TODO-INTEGRATION: YAHOO_FANTASY
- * Returns the current connection status.
- */
-export function getConnectionStatus(): YahooConnection {
-  return { connected: false };
-}
-
-// ---- League / Team data ----
-
-export interface YahooLeagueSummary {
-  id: string;
-  name: string;
-  format: ScoringFormat;
-  teams: number;
-}
-
-/**
- * // TODO-INTEGRATION: YAHOO_FANTASY
- * MOCK: Returns a fake league list.
- * Real: Calls Yahoo API to list the user's fantasy leagues for the current season.
- */
-export async function getYahooLeagues(): Promise<YahooLeagueSummary[]> {
-  if (IS_MOCK) {
-    await delay(600);
-    return [{ id: mockLeagueFull.id, name: mockLeagueFull.name, format: 'Half-PPR', teams: 12 }];
+  try {
+    await apiDisconnect();
+    return { connected: false, status: 'disconnected' };
+  } catch {
+    return { connected: false, status: 'error', error: 'Failed to disconnect Yahoo.' };
   }
-  throw new Error('Yahoo API not implemented');
+}
+
+function mapStatusResponse(status: YahooAuthStatusResponse): YahooConnection {
+  if (!status.configured) {
+    return { connected: false, status: 'not_configured' };
+  }
+  return {
+    connected: status.connected,
+    status: status.status as YahooConnection['status'],
+    yahooGuid: status.yahooGuid,
+  };
+}
+
+// ---- League discovery ----
+
+export async function getYahooLeagues(season?: number): Promise<ProviderLeague[]> {
+  try {
+    const raw = await fetchYahooLeagues(season ?? getCurrentSeason());
+    return mapYahooLeagues(raw);
+  } catch (e) {
+    if (e instanceof YahooApiError && e.status === 401) {
+      throw new Error('Yahoo connection expired. Please reconnect Yahoo.');
+    }
+    throw new Error(`Failed to fetch Yahoo leagues: ${e instanceof Error ? e.message : 'unknown error'}`);
+  }
+}
+
+// ---- League settings ----
+
+export async function getYahooLeagueSettings(leagueKey: string): Promise<YahooLeagueSettings> {
+  try {
+    const raw = await fetchYahooLeagueSettings(leagueKey);
+    return mapYahooLeagueSettings(raw);
+  } catch (e) {
+    if (e instanceof YahooApiError && e.status === 401) {
+      throw new Error('Yahoo connection expired. Please reconnect Yahoo.');
+    }
+    throw new Error(`Failed to fetch Yahoo league settings: ${e instanceof Error ? e.message : 'unknown error'}`);
+  }
+}
+
+// ---- League teams ----
+
+export async function getYahooLeagueTeams(leagueKey: string): Promise<ProviderTeam[]> {
+  try {
+    const raw = await fetchYahooLeagueTeams(leagueKey);
+    const teams = mapYahooTeams(raw);
+    // Fill in the league ID for each team
+    return teams.map(t => ({ ...t, providerLeagueId: leagueKey }));
+  } catch (e) {
+    if (e instanceof YahooApiError && e.status === 401) {
+      throw new Error('Yahoo connection expired. Please reconnect Yahoo.');
+    }
+    throw new Error(`Failed to fetch Yahoo league teams: ${e instanceof Error ? e.message : 'unknown error'}`);
+  }
+}
+
+// ---- User team ----
+
+export async function getYahooUserTeam(leagueKey: string): Promise<ProviderTeam | null> {
+  try {
+    const raw = await fetchYahooUserTeam(leagueKey);
+    const team = mapYahooUserTeam(raw);
+    if (!team) return null;
+    return { ...team, providerLeagueId: leagueKey };
+  } catch (e) {
+    if (e instanceof YahooApiError && e.status === 401) {
+      throw new Error('Yahoo connection expired. Please reconnect Yahoo.');
+    }
+    throw new Error(`Failed to fetch user team: ${e instanceof Error ? e.message : 'unknown error'}`);
+  }
+}
+
+// ---- Roster ----
+
+export async function getYahooRoster(teamKey: string, week?: number): Promise<ProviderRosterEntry[]> {
+  try {
+    const raw = await fetchYahooRoster(teamKey, week);
+    return mapYahooRoster(raw);
+  } catch (e) {
+    if (e instanceof YahooApiError && e.status === 401) {
+      throw new Error('Yahoo connection expired. Please reconnect Yahoo.');
+    }
+    throw new Error(`Failed to fetch Yahoo roster: ${e instanceof Error ? e.message : 'unknown error'}`);
+  }
+}
+
+// ---- Matchup ----
+
+export async function getYahooMatchup(teamKey: string, week?: number): Promise<ProviderMatchup | null> {
+  try {
+    const raw = await fetchYahooMatchup(teamKey, week);
+    return mapYahooMatchup(raw);
+  } catch (e) {
+    if (e instanceof YahooApiError && e.status === 401) {
+      throw new Error('Yahoo connection expired. Please reconnect Yahoo.');
+    }
+    throw new Error(`Failed to fetch Yahoo matchup: ${e instanceof Error ? e.message : 'unknown error'}`);
+  }
+}
+
+// ---- Player crosswalk (Yahoo -> Sleeper) ----
+
+export interface YahooRosterWithPlayers extends ProviderRosterEntry {
+  sleeperPlayerId: string | null;
+  player: Player | null;
 }
 
 /**
- * // TODO-INTEGRATION: YAHOO_FANTASY
- * MOCK: Returns mock league settings.
- * Real: Calls Yahoo league.settings resource.
+ * Maps Yahoo roster entries to Sleeper players using name + team + position matching.
+ * Returns diagnostics showing how many players were matched, unmatched, or ambiguous.
  */
-export async function getYahooLeagueSettings(_leagueId: string): Promise<LeagueScoringSettings> {
-  if (IS_MOCK) {
-    await delay(500);
-    return mockLeagueFull.scoring;
+export async function crosswalkYahooRoster(
+  roster: ProviderRosterEntry[],
+): Promise<{ players: YahooRosterWithPlayers[]; diagnostic: CrosswalkDiagnostic }> {
+  const sleeperPlayers = await getAllPlayers();
+
+  // Build lookup indexes
+  const byNameTeamPos = new Map<string, Player>();
+  const byNamePos = new Map<string, Player[]>();
+
+  for (const p of sleeperPlayers) {
+    const nameKey = normalizeName(p.name);
+    byNameTeamPos.set(`${nameKey}|${p.nflTeam}|${p.position}`, p);
+
+    const namePosKey = `${nameKey}|${p.position}`;
+    const existing = byNamePos.get(namePosKey);
+    if (existing) existing.push(p);
+    else byNamePos.set(namePosKey, [p]);
   }
-  throw new Error('Yahoo API not implemented');
+
+  let directlyMatched = 0;
+  let matchedByName = 0;
+  let unmatched = 0;
+  let ambiguous = 0;
+  const unmatchedPlayers: string[] = [];
+
+  const result: YahooRosterWithPlayers[] = roster.map((entry) => {
+    const nameKey = normalizeName(entry.playerName);
+    const team = normalizeTeam(entry.nflTeam);
+    const pos = normalizePosition(entry.position);
+
+    // Strategy 1: exact name + team + position
+    let matchedPlayer: Player | null = null;
+    if (team && pos) {
+      const key = `${nameKey}|${team}|${pos}`;
+      matchedPlayer = byNameTeamPos.get(key) ?? null;
+      if (matchedPlayer) directlyMatched++;
+    }
+
+    // Strategy 2: exact name + position
+    if (!matchedPlayer && pos) {
+      const key = `${nameKey}|${pos}`;
+      const candidates = byNamePos.get(key);
+      if (candidates && candidates.length === 1) {
+        matchedPlayer = candidates[0];
+        matchedByName++;
+      } else if (candidates && candidates.length > 1) {
+        ambiguous++;
+      }
+    }
+
+    if (!matchedPlayer) {
+      unmatched++;
+      unmatchedPlayers.push(entry.playerName);
+    }
+
+    return {
+      ...entry,
+      sleeperPlayerId: matchedPlayer?.id ?? null,
+      player: matchedPlayer,
+    };
+  });
+
+  return {
+    players: result,
+    diagnostic: {
+      totalProviderPlayers: roster.length,
+      directlyMatched,
+      matchedByName,
+      unmatched,
+      ambiguous,
+      unmatchedPlayers,
+    },
+  };
 }
+
+// ---- Ownership / waiver foundation ----
 
 /**
- * // TODO-INTEGRATION: YAHOO_FANTASY
- * MOCK: Returns mock league teams.
- * Real: Calls Yahoo league.teams resource.
+ * Fetches all players in a Yahoo league to determine ownership status.
+ * This is the foundation for future waiver recommendations.
+ *
+ * Note: The Yahoo Fantasy API's /league/{key}/players endpoint may return
+ * a large dataset. The free tier may limit this. See docs for limitations.
  */
-export async function getYahooLeagueTeams(_leagueId: string): Promise<FantasyTeam[]> {
-  if (IS_MOCK) {
-    await delay(500);
-    return mockLeagueFull.teams;
+export async function getYahooLeaguePlayerOwnership(leagueKey: string): Promise<unknown> {
+  try {
+    return await fetchYahooLeaguePlayers(leagueKey);
+  } catch (e) {
+    if (e instanceof YahooApiError && e.status === 401) {
+      throw new Error('Yahoo connection expired. Please reconnect Yahoo.');
+    }
+    throw new Error(`Failed to fetch Yahoo league players: ${e instanceof Error ? e.message : 'unknown error'}`);
   }
-  throw new Error('Yahoo API not implemented');
 }
 
-/**
- * // TODO-INTEGRATION: YAHOO_FANTASY
- * MOCK: Returns mock user roster.
- * Real: Calls Yahoo team.roster resource and maps to FantasyRoster.
- */
-export async function getYahooRoster(_teamId: string): Promise<FantasyRoster> {
-  if (IS_MOCK) {
-    await delay(500);
-    return mockUserTeam.roster;
-  }
-  throw new Error('Yahoo API not implemented');
+// ---- Legacy compatibility ----
+// These aliases keep the old import paths working during the transition.
+
+export { connectYahoo as connectYahooFantasy };
+export { disconnectYahoo as disconnectYahooFantasy };
+
+// ---- Helpers ----
+
+function normalizeName(name: string): string {
+  return name.toLowerCase().trim().replace(/\./g, '').replace(/\s+/g, ' ');
 }
 
-/**
- * // TODO-INTEGRATION: YAHOO_FANTASY
- * MOCK: Returns mock full league.
- * Real: Combines league settings + teams + rosters into a FantasyLeague.
- */
-export async function getYahooLeague(_leagueId: string): Promise<FantasyLeague> {
-  if (IS_MOCK) {
-    await delay(600);
-    return mockLeagueFull;
-  }
-  throw new Error('Yahoo API not implemented');
+// ---- Synchronous status (for initial render) ----
+
+let cachedStatus: YahooConnection | null = null;
+
+export function getCachedYahooStatus(): YahooConnection | null {
+  return cachedStatus;
 }
 
-/**
- * // TODO-INTEGRATION: YAHOO_FANTASY
- * MOCK: Returns mock weekly matchup.
- * Real: Calls Yahoo league.matchup resource for the given week.
- */
-export async function getYahooMatchup(_teamId: string, _week: number): Promise<WeeklyMatchup> {
-  if (IS_MOCK) {
-    await delay(600);
-    return mockWeeklyMatchup;
-  }
-  throw new Error('Yahoo API not implemented');
+export function setCachedYahooStatus(status: YahooConnection | null): void {
+  cachedStatus = status;
 }
 
-// ---- Backward-compatible exports for existing callers ----
+// ---- Scoring format helper ----
 
-export const connectYahooFantasy = connectYahoo;
-export const disconnectYahooFantasy = disconnectYahoo;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export function inferScoringFormat(settings: LeagueScoringSettings): 'Standard' | 'Half-PPR' | 'Full-PPR' {
+  if (settings.receptionPoints >= 1) return 'Full-PPR';
+  if (settings.receptionPoints === 0.5) return 'Half-PPR';
+  return 'Standard';
 }

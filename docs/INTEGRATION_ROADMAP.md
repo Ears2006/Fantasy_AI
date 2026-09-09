@@ -62,6 +62,43 @@ This document tracks every major integration — what is REAL, what requires con
 - **Implementations:** `src/services/ai/toolImplementations.ts`
 - **Status:** 8 REAL tools (player_search, player_info, player_projection, player_recent_performance, player_rankings, player_injury, player_news, player_profile). 7 analysis tools gather real data context but return "reasoning engine not connected" since the AI model isn't connected.
 
+### Yahoo OAuth Architecture (REAL, awaiting credentials)
+- **Edge Functions:** `supabase/functions/yahoo-auth/` + `supabase/functions/yahoo-api/` (deployed)
+- **OAuth Service:** `src/services/yahoo/yahooService.ts` (real OAuth flow)
+- **API Client:** `src/services/yahoo/yahooApi.ts`
+- **Mapper:** `src/services/yahoo/yahooMapper.ts`
+- **Types:** `src/services/yahoo/yahooTypes.ts`
+- **Database:** `yahoo_connections` + `yahoo_leagues` tables (RLS enabled, deny-all anon policies)
+- **Status:** Architecture is REAL and deployed. OAuth tokens stored server-side. Credentials needed (see CONFIGURATION REQUIRED below).
+
+### Yahoo League Discovery & Selection
+- **Status:** REAL architecture — fetches user's Yahoo Fantasy Football leagues, lets them select which league to use.
+- **Types:** `ProviderLeague` in `@/types`
+- Handles zero, one, or multiple leagues. Old/inactive leagues filtered by season.
+
+### Yahoo League Settings Import
+- **Status:** REAL architecture — maps Yahoo scoring categories to `LeagueScoringSettings`.
+- Supports passing, rushing, receiving, fumbles scoring. Unsupported categories preserved as `YahooScoringCategory[]`.
+- Uses existing scoring engine as the authoritative calculator.
+
+### Yahoo Team & Roster Import
+- **Status:** REAL architecture — fetches user's team and roster from Yahoo.
+- Maps to provider-neutral `ProviderTeam` and `ProviderRosterEntry` types.
+- Crosswalks Yahoo player IDs to Sleeper IDs via name + team + position matching.
+
+### Yahoo Matchup Retrieval
+- **Status:** REAL architecture — fetches current week matchup from Yahoo.
+- Maps to `ProviderMatchup` type. Uses FantasyPros projections when Yahoo doesn't provide them.
+
+### Yahoo Player Crosswalk
+- **Status:** REAL — `crosswalkYahooRoster()` in `yahooService.ts`.
+- Matches Yahoo roster entries to Sleeper players.
+- Returns diagnostics: matched, unmatched, ambiguous counts.
+
+### Season/Week Helper
+- **Service:** `src/services/utils/season.ts`
+- **Status:** REAL — centralized `getCurrentSeason()` and `getCurrentWeek()`.
+
 ### Upload Infrastructure
 - **Service:** `src/services/upload/uploadService.ts`
 - File type/size validation, typed `UploadedImage`.
@@ -90,10 +127,28 @@ This document tracks every major integration — what is REAL, what requires con
 - **Mock file:** `src/services/ai/fantasyAiService.ts` (deterministic router, not an LLM)
 - The tool registry is ready for the AI to call.
 
-### Yahoo OAuth
+### Yahoo OAuth Credentials
 - **TODO marker:** `// TODO-INTEGRATION: YAHOO_FANTASY`
-- **Mock file:** `src/services/yahoo/yahooService.ts` (`IS_MOCK = true`)
-- Clean adapter interfaces exist.
+- **Edge functions:** Already deployed at `/functions/v1/yahoo-auth` and `/functions/v1/yahoo-api`
+- **What to do:** Create a Yahoo Developer app and set two secrets:
+  - `YAHOO_CLIENT_ID`
+  - `YAHOO_CLIENT_SECRET`
+- **How:** Use the Supabase dashboard (Project Settings → Edge Functions → Secrets) or CLI:
+  ```
+  supabase secrets set YAHOO_CLIENT_ID=your_client_id
+  supabase secrets set YAHOO_CLIENT_SECRET=your_client_secret
+  ```
+- **Callback URL:** Register this exact URL in your Yahoo Developer app:
+  `https://mhnatrcnnbilzvtqokgu.supabase.co/functions/v1/yahoo-auth?action=callback`
+- **Yahoo Developer steps:**
+  1. Go to https://developer.yahoo.com/apps/
+  2. Create a new app
+  3. Set the callback URI to the URL above
+  4. Select the Fantasy Sports API scope
+  5. Copy the Client ID and Client Secret
+  6. Set them as Supabase secrets (above)
+- **Effect:** Once configured, users can connect Yahoo, discover leagues, import rosters, and view matchups.
+- **Without credentials:** The app shows a clean "Yahoo not configured" state. No mock data is displayed.
 
 ### ESPN Integration
 - **TODO marker:** `// TODO-INTEGRATION: ESPN_FANTASY`
@@ -221,8 +276,11 @@ Sleeper          FantasyPros (via edge function)
 
 ### Yahoo Fantasy OAuth/API
 - **TODO marker:** `// TODO-INTEGRATION: YAHOO_FANTASY`
-- **Mock file:** `src/services/yahoo/yahooService.ts`
-- **Adapter interfaces:** `connectYahoo`, `getYahooLeagues`, `getYahooRoster`, etc.
+- **Edge functions:** `yahoo-auth` (OAuth flow) + `yahoo-api` (API proxy) — deployed
+- **Frontend service:** `src/services/yahoo/yahooService.ts` (real, not mock)
+- **Database:** `yahoo_connections` + `yahoo_leagues` tables
+- **Required secrets:** `YAHOO_CLIENT_ID`, `YAHOO_CLIENT_SECRET`
+- **Callback URL:** `https://mhnatrcnnbilzvtqokgu.supabase.co/functions/v1/yahoo-auth?action=callback`
 
 ### ESPN Fantasy Integration
 - **TODO marker:** `// TODO-INTEGRATION: ESPN_FANTASY`
@@ -236,13 +294,12 @@ Sleeper          FantasyPros (via edge function)
 
 ## Recommended Order After Bolt
 
-1. **FantasyPros API key** — set the secret, all fantasy data activates
+1. **Yahoo OAuth credentials** — create Yahoo Developer app, set secrets, activate Yahoo integration
 2. **AI model** — connect an LLM to the existing tool registry
-3. **Core roster analysis** — combine projections + scoring engine + AI
-4. **Yahoo Fantasy integration** — real OAuth via existing adapter
-5. **Weekly matchup engine** — requires rosters + projections
-6. **Sleeper engine** — requires waiver pool + projections + AI
-7. **Trade engine** — requires all rosters + projections + AI
-8. **ESPN integration** — secondary platform via existing adapter
-9. **Screenshot roster recognition** — vision model for roster OCR
-10. **Production authentication/persistence** — Supabase auth + database
+3. **Core roster analysis** — combine Yahoo roster + projections + scoring engine + AI
+4. **Weekly matchup engine** — requires Yahoo rosters + projections
+5. **Sleeper engine** — requires waiver pool + projections + AI
+6. **Trade engine** — requires all Yahoo league rosters + projections + AI
+7. **ESPN integration** — secondary platform via existing adapter
+8. **Screenshot roster recognition** — vision model for roster OCR
+9. **Production authentication/persistence** — Supabase auth + database

@@ -400,17 +400,102 @@ export interface FantasyDataStatus {
   message: string;
 }
 
+// ---- Yahoo OAuth / provider-neutral league types ----
+
+export type YahooConnectionStatus =
+  | 'not_configured'
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'expired'
+  | 'error';
+
+export interface YahooConnection {
+  connected: boolean;
+  status: YahooConnectionStatus;
+  leagueName?: string;
+  format?: ScoringFormat;
+  rosterCount?: number;
+  yahooGuid?: string;
+  error?: string;
+}
+
+export interface ProviderLeague {
+  providerLeagueId: string;
+  provider: 'yahoo' | 'espn' | 'sleeper';
+  name: string;
+  season: number;
+  numberOfTeams: number;
+  currentWeek?: number;
+  scoringType?: string;
+  isKeeperLeague?: boolean;
+  draftStatus?: string;
+}
+
+export interface ProviderTeam {
+  providerTeamId: string;
+  providerLeagueId: string;
+  name: string;
+  managerName: string;
+  managerIsUser: boolean;
+  record: { wins: number; losses: number; ties: number };
+  projectedScore?: number;
+  roster?: ProviderRosterEntry[];
+}
+
+export interface ProviderRosterEntry {
+  providerPlayerId: string;
+  yahooPlayerKey?: string;
+  playerName: string;
+  position: FantasyPosition;
+  nflTeam: NFLTeam;
+  slot: string;
+  eligiblePositions?: string[];
+  byeWeek?: number;
+  injuryStatus?: string;
+  isStarter: boolean;
+}
+
+export interface ProviderMatchup {
+  week: number;
+  userTeamId: string;
+  userTeamName: string;
+  userProjected: number;
+  userActual?: number;
+  opponentTeamId: string;
+  opponentTeamName: string;
+  opponentProjected: number;
+  opponentActual?: number;
+  matchupState?: string;
+}
+
+export interface YahooScoringCategory {
+  yahooKey: string;
+  yahooLabel: string;
+  value: number;
+  unit?: string;
+  supported: boolean;
+}
+
+export interface YahooLeagueSettings {
+  scoring: LeagueScoringSettings;
+  rawYahooScoring: YahooScoringCategory[];
+  unsupportedCategories: YahooScoringCategory[];
+}
+
+export interface CrosswalkDiagnostic {
+  totalProviderPlayers: number;
+  directlyMatched: number;
+  matchedByName: number;
+  unmatched: number;
+  ambiguous: number;
+  unmatchedPlayers: string[];
+}
+
 // ---- Auth ----
 
 export interface MockUser {
   id: string;
   email: string;
   displayName: string;
-}
-
-export interface YahooConnection {
-  connected: boolean;
-  leagueName?: string;
-  format?: ScoringFormat;
-  rosterCount?: number;
 }
