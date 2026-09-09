@@ -28,14 +28,32 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+// Build CORS headers that echo the request Origin.
+// When the frontend uses credentials: "include", the browser rejects
+// Access-Control-Allow-Origin: * — it must be the specific origin.
+function buildCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin");
+  if (origin) {
+    return {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+      "Access-Control-Allow-Credentials": "true",
+      "Vary": "Origin",
+    };
+  }
+  return corsHeaders;
+}
+
 const YAHOO_AUTH_URL = "https://api.login.yahoo.com/oauth2/request_auth";
 const YAHOO_TOKEN_URL = "https://api.login.yahoo.com/oauth2/get_token";
 const SESSION_COOKIE_NAME = "fp_session";
 const TOKEN_TTL_BUFFER_MS = 5 * 60 * 1000; // refresh 5 min before expiry
 
 Deno.serve(async (req: Request) => {
+  const corsH = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: corsH });
   }
 
   try {
@@ -53,7 +71,7 @@ Deno.serve(async (req: Request) => {
           connected: false,
           status: "not_configured",
           message: "YAHOO_CLIENT_ID and YAHOO_CLIENT_SECRET are not set.",
-        });
+        }, 200, req);
       }
       const sessionKey = getSessionKey(req);
       if (!sessionKey) {
@@ -62,7 +80,7 @@ Deno.serve(async (req: Request) => {
           connected: false,
           status: "disconnected",
           message: "No Yahoo connection for this session.",
-        });
+        }, 200, req);
       }
       const conn = await getConnection(sessionKey);
       if (!conn) {
@@ -71,7 +89,7 @@ Deno.serve(async (req: Request) => {
           connected: false,
           status: "disconnected",
           message: "No Yahoo connection for this session.",
-        });
+        }, 200, req);
       }
       const isExpired = isTokenExpired(conn.access_token_expires_at);
       return jsonResponse({
@@ -80,7 +98,7 @@ Deno.serve(async (req: Request) => {
         status: isExpired ? "expired" : conn.status,
         yahooGuid: conn.yahoo_guid,
         message: isExpired ? "Yahoo token expired. Reconnection needed." : "Yahoo is connected.",
-      });
+      }, 200, req);
     }
 
     // ---- All other actions require credentials ----
@@ -88,6 +106,7 @@ Deno.serve(async (req: Request) => {
       return jsonResponse(
         { error: "Yahoo OAuth is not configured. Set YAHOO_CLIENT_ID and YAHOO_CLIENT_SECRET secrets." },
         503,
+        req,
       );
     }
 
@@ -107,7 +126,7 @@ Deno.serve(async (req: Request) => {
       // Store state for CSRF validation
       await storeState(sessionKey, state);
 
-      const headers = new Headers(corsHeaders);
+      const headers = new Headers(buildCorsHeaders(req));
       headers.set("Location", authUrl.toString());
       setSessionCookie(headers, sessionKey);
       return new Response(null, { status: 302, headers });
@@ -122,12 +141,14 @@ Deno.serve(async (req: Request) => {
       if (error) {
         return htmlResponse(
           `<html><body><script>window.opener.postMessage({type:'yahoo-callback',error:'${error}'},'*');window.close();</script></body></html>`,
+          200, req,
         );
       }
 
       if (!code || !state) {
         return htmlResponse(
           `<html><body><script>window.opener.postMessage({type:'yahoo-callback',error:'missing_code_or_state'},'*');window.close();</script></body></html>`,
+          200, req,
         );
       }
 
@@ -135,6 +156,7 @@ Deno.serve(async (req: Request) => {
       if (!sessionKey) {
         return htmlResponse(
           `<html><body><script>window.opener.postMessage({type:'yahoo-callback',error:'invalid_state'},'*');window.close();</script></body></html>`,
+          200, req,
         );
       }
 
@@ -143,6 +165,7 @@ Deno.serve(async (req: Request) => {
       if (!validState) {
         return htmlResponse(
           `<html><body><script>window.opener.postMessage({type:'yahoo-callback',error:'state_mismatch'},'*');window.close();</script></body></html>`,
+          200, req,
         );
       }
 
@@ -167,6 +190,7 @@ Deno.serve(async (req: Request) => {
         void errText; // don't log error body (may contain sensitive info)
         return htmlResponse(
           `<html><body><script>window.opener.postMessage({type:'yahoo-callback',error:'token_exchange_failed'},'*');window.close();</script></body></html>`,
+          200, req,
         );
       }
 
@@ -185,7 +209,7 @@ Deno.serve(async (req: Request) => {
       // Clean up state
       await deleteState(sessionKey);
 
-      const headers = new Headers(corsHeaders);
+      const headers = new Headers(buildCorsHeaders(req));
       setSessionCookie(headers, sessionKey);
       const html = `<html><body><script>window.opener.postMessage({type:'yahoo-callback',success:true},'*');window.close();</script></body></html>`;
       return new Response(html, { status: 200, headers: { ...headers, "Content-Type": "text/html" } });
@@ -195,52 +219,54 @@ Deno.serve(async (req: Request) => {
     if (action === "disconnect") {
       const sessionKey = getSessionKey(req);
       if (!sessionKey) {
-        return jsonResponse({ success: true, message: "No connection to disconnect." });
+        return jsonResponse({ success: true, message: "No connection to disconnect." }, 200, req);
       }
       await deleteConnection(sessionKey);
-      return jsonResponse({ success: true, message: "Yahoo disconnected." });
+      return jsonResponse({ success: true, message: "Yahoo disconnected." }, 200, req);
     }
 
     // ---- Refresh token manually ----
     if (action === "refresh") {
       const sessionKey = getSessionKey(req);
       if (!sessionKey) {
-        return jsonResponse({ error: "No session found." }, 400);
+        return jsonResponse({ error: "No session found." }, 400, req);
       }
       const conn = await getConnection(sessionKey);
       if (!conn) {
-        return jsonResponse({ error: "No Yahoo connection found." }, 404);
+        return jsonResponse({ error: "No Yahoo connection found." }, 404, req);
       }
       const refreshed = await refreshToken(conn.refresh_token, clientId, clientSecret);
       if (!refreshed) {
-        return jsonResponse({ error: "Token refresh failed. Reconnection needed." }, 401);
+        return jsonResponse({ error: "Token refresh failed. Reconnection needed." }, 401, req);
       }
       const expiresAt = new Date(Date.now() + (refreshed.expires_in ?? 3600) * 1000).toISOString();
       await updateTokens(sessionKey, refreshed.access_token, refreshed.refresh_token, expiresAt);
-      return jsonResponse({ success: true, message: "Token refreshed." });
+      return jsonResponse({ success: true, message: "Token refreshed." }, 200, req);
     }
 
-    return jsonResponse({ error: `Unknown action: ${action}` }, 400);
+    return jsonResponse({ error: `Unknown action: ${action}` }, 400, req);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Internal server error";
     console.error("yahoo-auth error:", msg);
-    return jsonResponse({ error: "Yahoo authentication error." }, 500);
+    return jsonResponse({ error: "Yahoo authentication error." }, 500, req);
   }
 });
 
 // ---- Helpers ----
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, req?: Request): Response {
+  const headers = req ? buildCorsHeaders(req) : corsHeaders;
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
-function htmlResponse(html: string, status = 200): Response {
+function htmlResponse(html: string, status = 200, req?: Request): Response {
+  const headers = req ? buildCorsHeaders(req) : corsHeaders;
   return new Response(html, {
     status,
-    headers: { ...corsHeaders, "Content-Type": "text/html" },
+    headers: { ...headers, "Content-Type": "text/html" },
   });
 }
 

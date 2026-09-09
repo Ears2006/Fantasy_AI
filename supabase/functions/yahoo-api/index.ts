@@ -13,11 +13,6 @@
 //   matchup       — GET current week matchup for a team
 //   players       — GET league players (for ownership/waiver status)
 //
-// Required query params:
-//   endpoint — which Yahoo resource to fetch
-//   leagueKey — Yahoo league key (e.g. "nfl.l.12345") for league-specific endpoints
-//   teamKey — Yahoo team key (e.g. "nfl.l.12345.t.1") for team-specific endpoints
-//
 // Server-side secrets:
 //   YAHOO_CLIENT_ID
 //   YAHOO_CLIENT_SECRET
@@ -26,11 +21,29 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const baseCorsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
+
+// Build CORS headers that echo the request Origin.
+// When the frontend uses credentials: "include", the browser rejects
+// Access-Control-Allow-Origin: * — it must be the specific origin.
+function buildCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin");
+  if (origin) {
+    return {
+      ...baseCorsHeaders,
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Credentials": "true",
+      "Vary": "Origin",
+    };
+  }
+  return {
+    ...baseCorsHeaders,
+    "Access-Control-Allow-Origin": "*",
+  };
+}
 
 const YAHOO_TOKEN_URL = "https://api.login.yahoo.com/oauth2/get_token";
 const YAHOO_FANTASY_API = "https://fantasysports.yahooapis.com/fantasy/v2";
@@ -39,8 +52,9 @@ const TOKEN_TTL_BUFFER_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 15000;
 
 Deno.serve(async (req: Request) => {
+  const corsH = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: corsH });
   }
 
   try {
@@ -51,18 +65,19 @@ Deno.serve(async (req: Request) => {
       return jsonResponse(
         { error: "Yahoo OAuth is not configured. Set YAHOO_CLIENT_ID and YAHOO_CLIENT_SECRET." },
         503,
+        req,
       );
     }
 
     const sessionKey = getSessionKey(req);
     if (!sessionKey) {
-      return jsonResponse({ error: "No Yahoo session found. Connect Yahoo first." }, 401);
+      return jsonResponse({ error: "No Yahoo session found. Connect Yahoo first." }, 401, req);
     }
 
     // Get stored tokens
     const conn = await getConnection(sessionKey);
     if (!conn) {
-      return jsonResponse({ error: "No Yahoo connection found. Connect Yahoo first." }, 401);
+      return jsonResponse({ error: "No Yahoo connection found. Connect Yahoo first." }, 401, req);
     }
 
     // Refresh token if expired
@@ -74,6 +89,7 @@ Deno.serve(async (req: Request) => {
         return jsonResponse(
           { error: "Yahoo token expired and refresh failed. Please reconnect Yahoo." },
           401,
+          req,
         );
       }
       const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
@@ -92,7 +108,7 @@ Deno.serve(async (req: Request) => {
     // Build Yahoo API URL
     const yahooUrl = buildYahooUrl(endpoint, { leagueKey, teamKey, week, season });
     if (!yahooUrl) {
-      return jsonResponse({ error: `Unknown endpoint: ${endpoint}` }, 400);
+      return jsonResponse({ error: `Unknown endpoint: ${endpoint}` }, 400, req);
     }
 
     // Fetch with timeout
@@ -111,7 +127,7 @@ Deno.serve(async (req: Request) => {
     } catch (fetchErr) {
       clearTimeout(timeoutId);
       const msg = fetchErr instanceof Error ? fetchErr.message : "Network error";
-      return jsonResponse({ error: `Yahoo API request failed: ${msg}` }, 502);
+      return jsonResponse({ error: `Yahoo API request failed: ${msg}` }, 502, req);
     }
     clearTimeout(timeoutId);
 
@@ -119,16 +135,16 @@ Deno.serve(async (req: Request) => {
     if (!yahooResp.ok) {
       const status = yahooResp.status;
       if (status === 401) {
-        return jsonResponse({ error: "Yahoo authentication failed. Please reconnect." }, 401);
+        return jsonResponse({ error: "Yahoo authentication failed. Please reconnect." }, 401, req);
       }
       if (status === 403) {
-        return jsonResponse({ error: "Yahoo permission denied for this resource." }, 403);
+        return jsonResponse({ error: "Yahoo permission denied for this resource." }, 403, req);
       }
       if (status === 404) {
-        return jsonResponse({ error: "Yahoo league or team not found." }, 404);
+        return jsonResponse({ error: "Yahoo league or team not found." }, 404, req);
       }
       if (status === 429) {
-        return jsonResponse({ error: "Yahoo API rate limit exceeded. Try again later." }, 429);
+        return jsonResponse({ error: "Yahoo API rate limit exceeded. Try again later." }, 429, req);
       }
       let detail = "";
       try {
@@ -137,15 +153,16 @@ Deno.serve(async (req: Request) => {
       return jsonResponse(
         { error: `Yahoo API returned ${status}`, detail: detail || undefined },
         status,
+        req,
       );
     }
 
     const data = await yahooResp.json();
-    return jsonResponse({ data });
+    return jsonResponse({ data }, 200, req);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Internal server error";
     console.error("yahoo-api error:", msg);
-    return jsonResponse({ error: "Yahoo API request failed." }, 500);
+    return jsonResponse({ error: "Yahoo API request failed." }, 500, req);
   }
 });
 
@@ -157,7 +174,6 @@ function buildYahooUrl(
 ): string | null {
   switch (endpoint) {
     case "leagues":
-      // GET users;use_login=/games;game_keys=nfl.season/leagues
       return `/users;use_login=1/games;game_keys=nfl.${params.season}/leagues`;
 
     case "league-settings":
@@ -199,10 +215,11 @@ function buildYahooUrl(
 
 // ---- Helpers ----
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status: number, req: Request): Response {
+  const headers = buildCorsHeaders(req);
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...headers, "Content-Type": "application/json" },
   });
 }
 
