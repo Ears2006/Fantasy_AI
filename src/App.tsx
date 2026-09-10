@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AppProvider, useApp } from '@/state/AppContext';
-import { useChatStore } from '@/services/chat/useChatStore';
+import { ChatProvider, useChat } from '@/services/chat/useChatStore';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -13,8 +13,8 @@ import { AboutPage } from '@/pages/AboutPage';
 import { HowItWorksPage } from '@/pages/HowItWorksPage';
 
 function AppShell() {
-  const { page } = useApp();
-  const { sessions, activeId, createNewSession, selectSession, deleteSession } = useChatStore();
+  const { page, setPage, user } = useApp();
+  const { sessions, activeId, createNewSession, selectSession, deleteSession } = useChat();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
@@ -31,6 +31,11 @@ function AppShell() {
     setSidebarOpen(false);
   };
 
+  const handleNewChat = () => {
+    createNewSession();
+    setPage('chat');
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-ink-950">
       <Sidebar
@@ -38,7 +43,7 @@ function AppShell() {
         onClose={() => setSidebarOpen(false)}
         sessions={sessions}
         activeSessionId={activeId}
-        onNewChat={createNewSession}
+        onNewChat={handleNewChat}
         onSelectSession={selectSession}
         onDeleteSession={deleteSession}
         onSignIn={handleSignIn}
@@ -46,7 +51,13 @@ function AppShell() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar onMenuClick={() => setSidebarOpen((o) => !o)} sidebarOpen={sidebarOpen} />
+        <TopBar
+          onMenuClick={() => setSidebarOpen((o) => !o)}
+          sidebarOpen={sidebarOpen}
+          onNewChat={handleNewChat}
+          onSignIn={handleSignIn}
+          signedIn={!!user}
+        />
 
         <main className="flex flex-1 overflow-hidden">
           {page === 'chat' && <ChatPage />}
@@ -72,7 +83,9 @@ function AppShell() {
 export default function App() {
   return (
     <AppProvider>
-      <AppShell />
+      <ChatProvider>
+        <AppShell />
+      </ChatProvider>
     </AppProvider>
   );
 }

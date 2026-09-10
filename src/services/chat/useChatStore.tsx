@@ -1,8 +1,13 @@
 // Chat state hook + localStorage persistence.
 // The storage layer is isolated here so a Supabase table can replace it
 // later without touching components (see TODO-INTEGRATION: AUTH_DATABASE_PERSISTENCE).
+//
+// IMPORTANT: This is a shared context, not a per-component hook.
+// useChatStore() is called once in App.tsx via ChatProvider and consumed
+// everywhere through useChat(). This prevents multiple state instances
+// from going out of sync.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChatMessage, ChatSession } from '@/types';
 import { uid } from '@/services/utils/uid';
 
@@ -60,19 +65,46 @@ function newSession(): ChatSession {
   };
 }
 
-export function useChatStore() {
+interface ChatStoreValue {
+  sessions: ChatSession[];
+  activeSession: ChatSession | null;
+  activeId: string | null;
+  createNewSession: () => string;
+  selectSession: (id: string) => void;
+  deleteSession: (id: string) => void;
+  addMessage: (message: ChatMessage) => void;
+  updateMessage: (id: string, patch: Partial<ChatMessage>) => void;
+  removeMessage: (id: string) => void;
+  clearActive: () => void;
+}
+
+const ChatContext = createContext<ChatStoreValue | null>(null);
+
+export function ChatProvider({ children }: { children: ReactNode }) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const hydrated = useRef(false);
 
   // Hydrate from localStorage on mount.
+  // Restore the last active conversation — do NOT create a new one
+  // unless there are genuinely no conversations to restore.
   useEffect(() => {
     const loaded = loadSessions();
     const loadedActive = loadActiveId();
-    if (loaded.length > 0 && loadedActive && loaded.some((s) => s.id === loadedActive)) {
+
+    if (loaded.length > 0) {
       setSessions(loaded);
-      setActiveId(loadedActive);
+      // Restore the active conversation if it still exists.
+      if (loadedActive && loaded.some((s) => s.id === loadedActive)) {
+        setActiveId(loadedActive);
+      } else {
+        // Active ID is stale or missing — fall back to the most
+        // recently updated conversation rather than creating a new one.
+        const mostRecent = [...loaded].sort((a, b) => b.updatedAt - a.updatedAt)[0];
+        setActiveId(mostRecent.id);
+      }
     } else {
+      // No conversations exist — create one fresh.
       const fresh = newSession();
       setSessions([fresh]);
       setActiveId(fresh.id);
@@ -175,7 +207,7 @@ export function useChatStore() {
     );
   }, [activeId]);
 
-  return {
+  const value: ChatStoreValue = {
     sessions,
     activeSession,
     activeId,
@@ -187,4 +219,12 @@ export function useChatStore() {
     removeMessage,
     clearActive,
   };
+
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+}
+
+export function useChat(): ChatStoreValue {
+  const ctx = useContext(ChatContext);
+  if (!ctx) throw new Error('useChat must be used within ChatProvider');
+  return ctx;
 }

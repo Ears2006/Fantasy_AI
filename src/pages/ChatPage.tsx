@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { ChatAttachment, ChatMessage } from '@/types';
-import { useChatStore } from '@/services/chat/useChatStore';
+import { useChat } from '@/services/chat/useChatStore';
 import {
   generateFantasyResponse,
   generatePostConnectionResponse,
@@ -15,7 +15,7 @@ import { validateImageFile, readAsDataUrl, ACCEPT_STRING } from '@/services/uplo
 
 export function ChatPage() {
   const { yahoo, user } = useApp();
-  const { activeSession, addMessage, removeMessage } = useChatStore();
+  const { activeSession, addMessage, removeMessage } = useChat();
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const prevYahooConnected = useRef(yahoo.connected);
