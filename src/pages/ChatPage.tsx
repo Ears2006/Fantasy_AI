@@ -68,12 +68,28 @@ export function ChatPage() {
       createdAt: Date.now(),
     });
 
-    try {
-      const responses = await generateFantasyResponse(text, attachments);
-      // Remove pending, add real responses.
-      removeMessage(pendingId);
-      for (const r of responses) addMessage(r);
-    } catch {
+try {
+  if (attachments.length > 0) {
+    const responses = await generateFantasyResponse(text, attachments);
+
+    removeMessage(pendingId);
+
+    for (const r of responses) {
+      addMessage(r);
+    }
+  } else {
+    const reply = await sendAiMessage(text);
+
+    removeMessage(pendingId);
+
+    addMessage({
+      id: uid(),
+      kind: 'assistant',
+      text: reply,
+      createdAt: Date.now(),
+    });
+  }
+} catch {
       removeMessage(pendingId);
       addMessage({
         id: uid(),
