@@ -15,6 +15,23 @@ import { validateImageFile, readAsDataUrl, ACCEPT_STRING } from '@/services/uplo
 import { sendAiMessage } from '@/services/ai/openAiService';
 
 export function ChatPage() {
+    async function testOpenAI() {
+    try {
+      const reply = await sendAiMessage(
+        'Reply with exactly: Fantasy AI connected'
+      );
+
+      console.log('OPENAI TEST:', reply);
+    } catch (error) {
+      console.error('OPENAI TEST FAILED:', error);
+    }
+  }
+
+  useEffect(() => {
+    testOpenAI();
+  }, []);
+
+  
   const { yahoo, user } = useApp();
   const { activeSession, addMessage, removeMessage } = useChat();
   const scrollRef = useRef<HTMLDivElement>(null);
