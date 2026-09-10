@@ -12,6 +12,7 @@ import { MessageBubble } from '@/components/chat/MessageBubble';
 import { Welcome } from '@/components/chat/Welcome';
 import { YahooConnectCard } from '@/components/fantasy/YahooConnectCard';
 import { validateImageFile, readAsDataUrl, ACCEPT_STRING } from '@/services/upload/uploadService';
+import { sendAiMessage } from '@/services/ai/openAiService';
 
 export function ChatPage() {
   const { yahoo, user } = useApp();
