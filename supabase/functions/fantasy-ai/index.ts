@@ -143,6 +143,8 @@ if (toolCall) {
   const playerResults = await searchSleeperPlayers(args.query);
 
   console.log("SLEEPER PLAYER RESULTS:", playerResults);
+
+  
   const finalResponse = await fetch(
   "https://api.openai.com/v1/responses",
   {
