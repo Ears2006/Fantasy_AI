@@ -133,6 +133,21 @@ fantasyDataUrl.searchParams.set("season", String(season));
 fantasyDataUrl.searchParams.set("week", String(week));
 fantasyDataUrl.searchParams.set("position", position);
 fantasyDataUrl.searchParams.set("scoring", fpScoring);
+
+  const projectionResponse = await fetch(fantasyDataUrl.toString(), {
+  headers: {
+    Authorization: `Bearer ${supabaseAnonKey}`,
+    apikey: supabaseAnonKey,
+  },
+});
+
+if (!projectionResponse.ok) {
+  throw new Error(
+    `Fantasy data request failed with status ${projectionResponse.status}`
+  );
+}
+
+const projectionData = await projectionResponse.json();
   // FantasyPros projection lookup will go here next.
   console.log("PROJECTION TOOL REQUEST:", {
     playerName,
