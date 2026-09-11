@@ -110,6 +110,12 @@ async function getFantasyProsProjection(
   week: number,
   scoringFormat: string
 ) {
+  const fpScoring =
+  scoringFormat === "Half-PPR"
+    ? "HALF"
+    : scoringFormat === "PPR"
+    ? "PPR"
+    : "STD";
   // FantasyPros projection lookup will go here next.
   console.log("PROJECTION TOOL REQUEST:", {
     playerName,
