@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// Fantasy AI Edge Function — OpenAI proxy with player search tool.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,18 +96,19 @@ serve(async (req) => {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-    body: JSON.stringify({
-      model: "gpt-5.6-terra",
-      reasoning: {
-        effort: "low",
-},
-tools: tools,
-tool_choice: {
-  type: "function",
-  name: "player_search",
-},
-input: message,
-}),
+      body: JSON.stringify({
+        model: "gpt-5.6-terra",
+        reasoning: {
+          effort: "low",
+        },
+        tools: tools,
+        tool_choice: {
+          type: "function",
+          name: "player_search",
+        },
+        input: message,
+      }),
+    });
 
     const data = await response.json();
 
@@ -138,8 +140,6 @@ const toolCall = data.output?.find(
 if (toolCall) {
   console.log("PLAYER SEARCH TOOL CALLED:", toolCall.arguments);
 }
-
-return new Response(JSON.stringify(data), {
 
     return new Response(JSON.stringify(data), {
       headers: {
