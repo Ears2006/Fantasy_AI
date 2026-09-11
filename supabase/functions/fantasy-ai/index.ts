@@ -176,6 +176,8 @@ if (!playerProjection) {
     `No FantasyPros projection found for ${playerName} at ${position}`
   );
 }
+
+  return playerProjection;
   // FantasyPros projection lookup will go here next.
   console.log("PROJECTION TOOL REQUEST:", {
     playerName,
