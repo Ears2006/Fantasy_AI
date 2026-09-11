@@ -99,10 +99,13 @@ serve(async (req) => {
       model: "gpt-5.6-terra",
       reasoning: {
         effort: "low",
-  },
-  tools: tools,
-  tool_choice: "auto",
-  input: message,
+},
+tools: tools,
+tool_choice: {
+  type: "function",
+  name: "player_search",
+},
+input: message,
 }),
 
     const data = await response.json();
