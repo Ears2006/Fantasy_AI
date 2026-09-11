@@ -8,4 +8,4 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.fantasy-ai]
-verify_jwt = false
+verify_jwt = true
