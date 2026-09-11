@@ -61,6 +61,46 @@ const tools = [
       additionalProperties: false,
     },
   },
+  {
+    type: "function",
+    name: "player_projection",
+    description:
+      "Get current weekly fantasy football projections for an NFL player. Use this when answering start/sit, matchup, or projected fantasy performance questions.",
+    parameters: {
+      type: "object",
+      properties: {
+        playerId: {
+          type: "string",
+          description: "The Sleeper player ID returned by player_search.",
+        },
+        position: {
+          type: "string",
+          description: "The player's position, such as QB, RB, WR, or TE.",
+        },
+        season: {
+          type: "number",
+          description: "NFL season year.",
+        },
+        week: {
+          type: "number",
+          description: "NFL week number.",
+        },
+        scoringFormat: {
+          type: "string",
+          enum: ["Standard", "Half-PPR", "PPR"],
+          description: "Fantasy league scoring format.",
+        },
+      },
+      required: [
+        "playerId",
+        "position",
+        "season",
+        "week",
+        "scoringFormat",
+      ],
+      additionalProperties: false,
+    },
+  },
 ];
 
 serve(async (req) => {
