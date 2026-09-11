@@ -149,7 +149,7 @@ if (!projectionResponse.ok) {
 
 const projectionData = await projectionResponse.json();
 
-  const rawData = projectionData.data ?? projectionData;
+const rawData = projectionData.data ?? projectionData;
 
 const projectionPlayers =
   rawData.players ?? rawData.data ?? [];
