@@ -69,10 +69,10 @@ const tools = [
     parameters: {
       type: "object",
       properties: {
-        playerId: {
+        playerName: {
           type: "string",
-          description: "The Sleeper player ID returned by player_search.",
-        },
+          description: "The NFL player's full name, such as Josh Allen.",
+},
         position: {
           type: "string",
           description: "The player's position, such as QB, RB, WR, or TE.",
