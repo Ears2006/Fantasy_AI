@@ -138,8 +138,12 @@ const toolCall = data.output?.find(
 
 if (toolCall) {
   console.log("PLAYER SEARCH TOOL CALLED:", toolCall.arguments);
-}
 
+  const args = JSON.parse(toolCall.arguments);
+  const playerResults = await searchSleeperPlayers(args.query);
+
+  console.log("SLEEPER PLAYER RESULTS:", playerResults);
+}
     return new Response(JSON.stringify(data), {
       headers: {
         ...corsHeaders,
