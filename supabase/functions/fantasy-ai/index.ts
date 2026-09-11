@@ -103,6 +103,25 @@ const tools = [
   },
 ];
 
+async function getFantasyProsProjection(
+  playerName: string,
+  position: string,
+  season: number,
+  week: number,
+  scoringFormat: string
+) {
+  // FantasyPros projection lookup will go here next.
+  console.log("PROJECTION TOOL REQUEST:", {
+    playerName,
+    position,
+    season,
+    week,
+    scoringFormat,
+  });
+
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
