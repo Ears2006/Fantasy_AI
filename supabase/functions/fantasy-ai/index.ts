@@ -116,6 +116,23 @@ async function getFantasyProsProjection(
     : scoringFormat === "PPR"
     ? "PPR"
     : "STD";
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Supabase environment variables are missing");
+}
+
+const fantasyDataUrl = new URL(
+  `${supabaseUrl}/functions/v1/fantasy-data`
+);
+
+fantasyDataUrl.searchParams.set("endpoint", "projections");
+fantasyDataUrl.searchParams.set("season", String(season));
+fantasyDataUrl.searchParams.set("week", String(week));
+fantasyDataUrl.searchParams.set("position", position);
+fantasyDataUrl.searchParams.set("scoring", fpScoring);
   // FantasyPros projection lookup will go here next.
   console.log("PROJECTION TOOL REQUEST:", {
     playerName,
