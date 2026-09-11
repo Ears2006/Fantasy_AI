@@ -95,14 +95,15 @@ serve(async (req) => {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "gpt-5.6-terra",
-        reasoning: {
-          effort: "low",
-        },
-        input: message,
-      }),
-    });
+    body: JSON.stringify({
+      model: "gpt-5.6-terra",
+      reasoning: {
+        effort: "low",
+  },
+  tools: tools,
+  tool_choice: "auto",
+  input: message,
+}),
 
     const data = await response.json();
 
