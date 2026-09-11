@@ -158,6 +158,24 @@ console.log(
   "FANTASYPROS PROJECTIONS RECEIVED:",
   projectionPlayers.length
 );
+
+const normalizedPlayerName = playerName.trim().toLowerCase();
+
+const playerProjection = projectionPlayers.find((player: any) => {
+  const name = String(player.name ?? "").trim().toLowerCase();
+  const playerPosition = String(player.position_id ?? "").toUpperCase();
+
+  return (
+    name === normalizedPlayerName &&
+    playerPosition === position.toUpperCase()
+  );
+});
+
+if (!playerProjection) {
+  throw new Error(
+    `No FantasyPros projection found for ${playerName} at ${position}`
+  );
+}
   // FantasyPros projection lookup will go here next.
   console.log("PROJECTION TOOL REQUEST:", {
     playerName,
