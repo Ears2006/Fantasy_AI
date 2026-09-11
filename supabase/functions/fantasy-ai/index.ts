@@ -143,6 +143,36 @@ if (toolCall) {
   const playerResults = await searchSleeperPlayers(args.query);
 
   console.log("SLEEPER PLAYER RESULTS:", playerResults);
+  const finalResponse = await fetch(
+  "https://api.openai.com/v1/responses",
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-5.6-terra",
+      previous_response_id: data.id,
+      input: [
+        {
+          type: "function_call_output",
+          call_id: toolCall.call_id,
+          output: JSON.stringify(playerResults),
+        },
+      ],
+    }),
+  }
+);
+
+const finalData = await finalResponse.json();
+
+return new Response(JSON.stringify(finalData), {
+  headers: {
+    ...corsHeaders,
+    "Content-Type": "application/json",
+  },
+});
 }
     return new Response(JSON.stringify(data), {
       headers: {
