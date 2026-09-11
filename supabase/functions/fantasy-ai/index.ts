@@ -92,7 +92,7 @@ const tools = [
         },
       },
       required: [
-        "playerId",
+        "playerName",
         "position",
         "season",
         "week",
