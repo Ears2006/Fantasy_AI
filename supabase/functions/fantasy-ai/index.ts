@@ -6,6 +6,41 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/* sleeper player */
+async function searchSleeperPlayers(query: string) {
+  const response = await fetch(
+    "https://api.sleeper.app/v1/players/nfl?active=true"
+  );
+
+  if (!response.ok) {
+    throw new Error("Sleeper player request failed");
+  }
+
+  const players = await response.json();
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const matches = Object.values(players)
+    .filter((player: any) => {
+      const name =
+        player.full_name ??
+        `${player.first_name ?? ""} ${player.last_name ?? ""}`.trim();
+
+      return name.toLowerCase().includes(normalizedQuery);
+    })
+    .slice(0, 10)
+    .map((player: any) => ({
+      playerId: player.player_id,
+      name:
+        player.full_name ??
+        `${player.first_name ?? ""} ${player.last_name ?? ""}`.trim(),
+      position: player.position,
+      team: player.team,
+      status: player.status,
+    }));
+
+  return matches;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
