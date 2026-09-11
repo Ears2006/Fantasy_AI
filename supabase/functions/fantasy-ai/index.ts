@@ -125,6 +125,19 @@ serve(async (req) => {
       );
     }
 
+    /* Detect player search tool call */
+const toolCall = data.output?.find(
+  (item: any) =>
+    item.type === "function_call" &&
+    item.name === "player_search"
+);
+
+if (toolCall) {
+  console.log("PLAYER SEARCH TOOL CALLED:", toolCall.arguments);
+}
+
+return new Response(JSON.stringify(data), {
+
     return new Response(JSON.stringify(data), {
       headers: {
         ...corsHeaders,
