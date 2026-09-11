@@ -102,10 +102,9 @@ serve(async (req) => {
           effort: "low",
         },
         tools: tools,
-        tool_choice: {
-          type: "function",
-          name: "player_search",
-        },
+        tool_choice: "auto",
+    
+        
         input: message,
       }),
     });
