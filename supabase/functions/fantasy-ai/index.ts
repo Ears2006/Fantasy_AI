@@ -41,6 +41,27 @@ async function searchSleeperPlayers(query: string) {
   return matches;
 }
 
+/* Player search */
+const tools = [
+  {
+    type: "function",
+    name: "player_search",
+    description:
+      "Search for an NFL fantasy football player by name. Use this when you need to identify a player before answering questions about them.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The player's name or partial name.",
+        },
+      },
+      required: ["query"],
+      additionalProperties: false,
+    },
+  },
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
