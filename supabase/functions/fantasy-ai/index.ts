@@ -313,6 +313,14 @@ if (toolCall) {
     );
   }
 
+  if (toolCall.name === "player_projection") {
+  return jsonResponse({
+    debug: true,
+    arguments: args,
+    toolResult,
+  });
+}
+
   console.log("AI TOOL RESULT:", toolResult);
 
   if (toolCall.name === "player_projection") {
