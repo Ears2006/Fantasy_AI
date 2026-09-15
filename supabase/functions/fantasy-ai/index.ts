@@ -343,6 +343,8 @@ if (toolCall) {
       model: "gpt-5.6-terra",
       instructions: fantasyAiInstructions,
       previous_response_id: data.id,
+      tools: tools,
+      tool_choice: "auto",
       input: [
         {
           type: "function_call_output",
