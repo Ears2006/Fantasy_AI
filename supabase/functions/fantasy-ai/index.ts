@@ -258,7 +258,10 @@ serve(async (req) => {
 const toolCall = data.output?.find(
   (item: any) =>
     item.type === "function_call" &&
-    item.name === "player_search"
+    (
+      item.name === "player_search" ||
+      item.name === "player_projection"
+    )
 );
 
 if (toolCall) {
