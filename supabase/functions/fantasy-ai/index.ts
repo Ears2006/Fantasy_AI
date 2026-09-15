@@ -301,7 +301,7 @@ if (toolCall) {
         {
           type: "function_call_output",
           call_id: toolCall.call_id,
-          output: JSON.stringify(playerResults),
+          output: JSON.stringify(toolResult),
         },
       ],
     }),
