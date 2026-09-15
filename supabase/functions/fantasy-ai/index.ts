@@ -230,7 +230,16 @@ serve(async (req) => {
         tool_choice: "auto",
     
         
-        input: message,
+       input: [
+  ...history.map((item: any) => ({
+    role: item.role,
+    content: item.content,
+  })),
+  {
+    role: "user",
+    content: message,
+  },
+],
       }),
     });
 
