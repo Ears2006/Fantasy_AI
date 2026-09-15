@@ -265,10 +265,23 @@ const toolCall = data.output?.find(
 );
 
 if (toolCall) {
-  console.log("PLAYER SEARCH TOOL CALLED:", toolCall.arguments);
+  console.log("AI TOOL CALLED:", toolCall.name, toolCall.arguments);
 
   const args = JSON.parse(toolCall.arguments);
-  const playerResults = await searchSleeperPlayers(args.query);
+
+  let toolResult;
+
+  if (toolCall.name === "player_search") {
+    toolResult = await searchSleeperPlayers(args.query);
+  } else if (toolCall.name === "player_projection") {
+    toolResult = await getFantasyProsProjection(
+      args.playerName,
+      args.position,
+      args.season,
+      args.week,
+      args.scoringFormat
+    );
+  }
 
   console.log("SLEEPER PLAYER RESULTS:", playerResults);
 
