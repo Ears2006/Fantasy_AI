@@ -244,7 +244,8 @@ serve(async (req) => {
         model: "gpt-5.6-terra",
         reasoning: {
           effort: "low",
-        }, instructions: fantasyAiInstructions,
+        },
+        instructions: fantasyAiInstructions,
 
         tools: tools,
         tool_choice: "auto",
