@@ -315,6 +315,13 @@ if (toolCall) {
 
   console.log("AI TOOL RESULT:", toolResult);
 
+  if (toolCall.name === "player_projection") {
+  console.log(
+    "PROJECTION DEBUG:",
+    JSON.stringify(toolResult, null, 2)
+  );
+}
+
   
   const finalResponse = await fetch(
   "https://api.openai.com/v1/responses",
