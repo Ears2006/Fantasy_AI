@@ -24,6 +24,11 @@ function getHeaders(): Record<string, string> {
   };
 }
 
+export interface AiChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export async function sendAiMessage(message: string): Promise<string> {
   const response = await fetch(getFantasyAiUrl(), {
     method: 'POST',
