@@ -283,7 +283,7 @@ if (toolCall) {
     );
   }
 
-  console.log("SLEEPER PLAYER RESULTS:", playerResults);
+  console.log("AI TOOL RESULT:", toolResult);
 
   
   const finalResponse = await fetch(
