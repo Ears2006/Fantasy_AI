@@ -29,7 +29,10 @@ export interface AiChatMessage {
   content: string;
 }
 
-export async function sendAiMessage(message: string): Promise<string> {
+export async function sendAiMessage(
+  message: string,
+  history: AiChatMessage[] = []
+): Promise<string> {
   const response = await fetch(getFantasyAiUrl(), {
     method: 'POST',
     headers: getHeaders(),
