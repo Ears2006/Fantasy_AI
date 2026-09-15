@@ -77,10 +77,22 @@ try {
     for (const r of responses) {
       addMessage(r);
     }
-  } else {
-    const reply = await sendAiMessage(text);
+} else {
+  const history = messages
+    .filter(
+      (message) =>
+        !message.pending &&
+        message.text &&
+        (message.kind === 'user' || message.kind === 'assistant')
+    )
+    .map((message) => ({
+      role: message.kind as 'user' | 'assistant',
+      content: message.text as string,
+    }));
 
-    removeMessage(pendingId);
+  const reply = await sendAiMessage(text, history);
+
+  removeMessage(pendingId);
 
     addMessage({
       id: uid(),
