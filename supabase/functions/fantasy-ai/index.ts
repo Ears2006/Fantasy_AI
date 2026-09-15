@@ -326,6 +326,7 @@ if (toolCall) {
     },
     body: JSON.stringify({
       model: "gpt-5.6-terra",
+      instructions: fantasyAiInstructions,
       previous_response_id: data.id,
       input: [
         {
