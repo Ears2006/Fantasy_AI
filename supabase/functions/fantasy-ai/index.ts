@@ -179,15 +179,13 @@ if (!playerProjection) {
 
   return playerProjection;
   // FantasyPros projection lookup will go here next.
-  console.log("PROJECTION TOOL REQUEST:", {
-    playerName,
-    position,
-    season,
-    week,
-    scoringFormat,
-  });
+  if (!playerProjection) {
+  throw new Error(
+    `No FantasyPros projection found for ${playerName} at ${position}`
+  );
+}
 
-  return null;
+return playerProjection;
 }
 
 serve(async (req) => {
