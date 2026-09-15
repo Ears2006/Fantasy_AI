@@ -101,17 +101,22 @@ try {
       createdAt: Date.now(),
     });
   }
-} catch {
-      removeMessage(pendingId);
-      addMessage({
-        id: uid(),
-        kind: 'assistant',
-        text: 'Sorry, I ran into an error analyzing that. Please try again.',
-        createdAt: Date.now(),
-      });
-    }
-  };
+} catch (error) {
+  removeMessage(pendingId);
 
+  const errorMessage =
+    error instanceof Error ? error.message : 'Unknown error';
+
+  console.error('Fantasy AI chat error:', error);
+
+  addMessage({
+    id: uid(),
+    kind: 'assistant',
+    text: `DEBUG ERROR: ${errorMessage}`,
+    createdAt: Date.now(),
+  });
+}
+};
   const handleRosterAction = async (action: 'optimize' | 'upgrades' | 'sleepers' | 'trade') => {
     const text =
       action === 'optimize' ? 'Optimize my lineup' :
