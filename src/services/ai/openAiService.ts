@@ -53,6 +53,8 @@ export async function sendAiMessage(
     .find((content) => content.type === 'output_text')
     ?.text;
 
+console.log('FULL AI RESPONSE:', data);
+  
   if (!text) {
     throw new Error('AI returned no text response');
   }
