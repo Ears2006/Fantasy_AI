@@ -33,11 +33,10 @@ export async function sendAiMessage(
   message: string,
   history: AiChatMessage[] = []
 ): Promise<string> {
-  const response = await fetch(getFantasyAiUrl(), {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({ message }),
-  });
+body: JSON.stringify({
+  message,
+  history,
+}),
 
   const data: AiResponse = await response.json();
 
