@@ -178,7 +178,7 @@ if (!playerProjection) {
 }
 
   return playerProjection;
-  // FantasyPros projection lookup will go here next.
+  // FantasyPros projection lookup 
   if (!playerProjection) {
   throw new Error(
     `No FantasyPros projection found for ${playerName} at ${position}`
