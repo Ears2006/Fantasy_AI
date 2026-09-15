@@ -285,86 +285,111 @@ serve(async (req) => {
     }
 
     /* Detect player search tool call */
-const toolCall = data.output?.find(
-  (item: any) =>
-    item.type === "function_call" &&
-    (
-      item.name === "player_search" ||
-      item.name === "player_projection"
-    )
-);
+let currentData = data;
+let toolRounds = 0;
+const maxToolRounds = 5;
 
-if (toolCall) {
-  console.log("AI TOOL CALLED:", toolCall.name, toolCall.arguments);
+while (toolRounds < maxToolRounds) {
+  const toolCalls = currentData.output?.filter(
+    (item: any) =>
+      item.type === "function_call" &&
+      (
+        item.name === "player_search" ||
+        item.name === "player_projection"
+      )
+  ) ?? [];
 
-  const args = JSON.parse(toolCall.arguments);
+  if (toolCalls.length === 0) {
+    break;
+  }
 
-  let toolResult;
+  toolRounds++;
 
-  if (toolCall.name === "player_search") {
-    toolResult = await searchSleeperPlayers(args.query);
-  } else if (toolCall.name === "player_projection") {
-    toolResult = await getFantasyProsProjection(
-      args.playerName,
-      args.position,
-      args.season,
-      args.week,
-      args.scoringFormat
+  console.log(
+    `AI TOOL ROUND ${toolRounds}:`,
+    toolCalls.map((call: any) => call.name)
+  );
+
+  const toolOutputs = [];
+
+  for (const toolCall of toolCalls) {
+    console.log(
+      "AI TOOL CALLED:",
+      toolCall.name,
+      toolCall.arguments
+    );
+
+    const args = JSON.parse(toolCall.arguments);
+
+    let toolResult;
+
+    if (toolCall.name === "player_search") {
+      toolResult = await searchSleeperPlayers(args.query);
+    } else if (toolCall.name === "player_projection") {
+      toolResult = await getFantasyProsProjection(
+        args.playerName,
+        args.position,
+        args.season,
+        args.week,
+        args.scoringFormat
+      );
+    }
+
+    console.log("AI TOOL RESULT:", toolCall.name, toolResult);
+
+    toolOutputs.push({
+      type: "function_call_output",
+      call_id: toolCall.call_id,
+      output: JSON.stringify(toolResult),
+    });
+  }
+
+  const nextResponse = await fetch(
+    "https://api.openai.com/v1/responses",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-5.6-terra",
+        instructions: fantasyAiInstructions,
+        previous_response_id: currentData.id,
+        tools: tools,
+        tool_choice: "auto",
+        input: toolOutputs,
+      }),
+    }
+  );
+
+  if (!nextResponse.ok) {
+    const errorText = await nextResponse.text();
+
+    throw new Error(
+      `OpenAI tool follow-up failed (${nextResponse.status}): ${errorText}`
     );
   }
 
-  if (toolCall.name === "player_projection") {
-  return jsonResponse({
-    debug: true,
-    arguments: args,
-    toolResult,
-  });
+  currentData = await nextResponse.json();
 }
 
-  console.log("AI TOOL RESULT:", toolResult);
-
-  if (toolCall.name === "player_projection") {
-  console.log(
-    "PROJECTION DEBUG:",
-    JSON.stringify(toolResult, null, 2)
+if (toolRounds >= maxToolRounds) {
+  const remainingToolCall = currentData.output?.some(
+    (item: any) => item.type === "function_call"
   );
+
+  if (remainingToolCall) {
+    throw new Error("AI exceeded maximum tool rounds");
+  }
 }
 
-  
-  const finalResponse = await fetch(
-  "https://api.openai.com/v1/responses",
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-5.6-terra",
-      instructions: fantasyAiInstructions,
-      previous_response_id: data.id,
-      tools: tools,
-      tool_choice: "auto",
-      input: [
-        {
-          type: "function_call_output",
-          call_id: toolCall.call_id,
-          output: JSON.stringify(toolResult),
-        },
-      ],
-    }),
-  }
-);
-
-const finalData = await finalResponse.json();
-
-return new Response(JSON.stringify(finalData), {
+return new Response(JSON.stringify(currentData), {
   headers: {
     ...corsHeaders,
     "Content-Type": "application/json",
   },
 });
-}
     return new Response(JSON.stringify(data), {
       headers: {
         ...corsHeaders,
