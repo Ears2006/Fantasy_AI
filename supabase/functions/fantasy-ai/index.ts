@@ -159,6 +159,17 @@ console.log(
   projectionPlayers.length
 );
 
+  console.log(
+  "FANTASYPROS PLAYER SAMPLE:",
+  projectionPlayers
+    .filter((player: any) =>
+      String(player.name ?? "")
+        .toLowerCase()
+        .includes("love")
+    )
+    .slice(0, 10)
+);
+
 const normalizedPlayerName = playerName.trim().toLowerCase();
 
 const playerProjection = projectionPlayers.find((player: any) => {
