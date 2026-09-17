@@ -230,6 +230,15 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const nflContext = await getCurrentNflContext();
+
+console.log(
+  "CURRENT NFL CONTEXT:",
+  nflContext.season,
+  nflContext.week,
+  nflContext.seasonType
+);
+
   try {
     const apiKey = Deno.env.get("OPENAI_API_KEY");
 
