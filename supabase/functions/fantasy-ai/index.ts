@@ -207,6 +207,24 @@ Default behavior:
 - When projection data provides statistical projections, include the useful predicted stats along with projected fantasy points.
 `;
 
+async function getCurrentNflContext() {
+  const response = await fetch("https://api.sleeper.app/v1/state/nfl");
+
+  if (!response.ok) {
+    throw new Error(
+      `Sleeper NFL state request failed (${response.status})`
+    );
+  }
+
+  const state = await response.json();
+
+  return {
+    season: Number(state.season),
+    week: Number(state.week),
+    seasonType: state.season_type,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
