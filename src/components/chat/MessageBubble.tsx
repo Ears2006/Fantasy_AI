@@ -97,7 +97,11 @@ export function MessageBubble({ message, onRosterAction, onBuildBetterTrade }: M
                 : 'rounded-bl-md border border-ink-600 bg-ink-850 text-gray-200'
             }`}
           >
-            {message.text}
+            {isUser ? (
+  message.text
+) : (
+  <ReactMarkdown>{message.text}</ReactMarkdown>
+)}
           </div>
         )}
 
