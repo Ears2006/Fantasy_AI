@@ -285,7 +285,7 @@ console.log(
         reasoning: {
           effort: "low",
         },
-        instructions: fantasyAiInstructions,
+        instructions: currentFantasyAiInstructions,
 
         tools: tools,
         tool_choice: "auto",
@@ -394,7 +394,7 @@ while (toolRounds < maxToolRounds) {
       },
       body: JSON.stringify({
         model: "gpt-5.6-terra",
-        instructions: fantasyAiInstructions,
+        instructions: currentFantasyAiInstructions,
         previous_response_id: currentData.id,
         tools: tools,
         tool_choice: "auto",
