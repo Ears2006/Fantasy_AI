@@ -232,6 +232,19 @@ serve(async (req) => {
 
   const nflContext = await getCurrentNflContext();
 
+  const currentFantasyAiInstructions = `${fantasyAiInstructions}
+
+Authoritative current NFL context:
+- Season: ${nflContext.season}
+- Week: ${nflContext.week}
+- Season type: ${nflContext.seasonType}
+
+Treat this NFL context as authoritative.
+When the user says "this week", "current week", or does not specify a week for a current projection, use Week ${nflContext.week} of the ${nflContext.season} season.
+If the user explicitly specifies a different season or week, use the user's requested season or week instead.
+Do not guess the current NFL week or season from your own knowledge.
+`;
+
 console.log(
   "CURRENT NFL CONTEXT:",
   nflContext.season,
