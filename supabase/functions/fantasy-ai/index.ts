@@ -139,6 +139,23 @@ async function findFantasyProsPlayerId(
   const players =
     rawData.players ?? rawData.data ?? [];
 
+  const players =
+  rawData.players ?? rawData.data ?? [];
+
+console.log(
+  "FANTASYPROS PLAYER LOOKUP COUNT:",
+  players.length
+);
+
+console.log(
+  "FANTASYPROS PLAYER LOOKUP SAMPLE:",
+  players.slice(0, 15).map((player: any) => ({
+    name: player.player_name ?? player.name,
+    position: player.position_id ?? player.position,
+    playerId: player.player_id ?? player.fpid,
+  }))
+);
+
   const normalizedName = playerName.trim().toLowerCase();
 
   const match = players.find((player: any) => {
