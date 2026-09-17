@@ -133,14 +133,13 @@ async function findFantasyProsPlayerId(
     );
   }
 
-  const data = await response.json();
-  const rawData = data.data ?? data;
+    const data = await response.json();
+    const rawData = data.data ?? data;
+  
+    const players =
+      rawData.players ?? rawData.data ?? [];
+  
 
-  const players =
-    rawData.players ?? rawData.data ?? [];
-
-  const players =
-  rawData.players ?? rawData.data ?? [];
 
 console.log(
   "FANTASYPROS PLAYER LOOKUP COUNT:",
