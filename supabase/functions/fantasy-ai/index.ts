@@ -103,6 +103,70 @@ const tools = [
   },
 ];
 
+async function findFantasyProsPlayerId(
+  playerName: string,
+  position: string
+) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase environment variables are missing");
+  }
+
+  const playerUrl = new URL(
+    `${supabaseUrl}/functions/v1/fantasy-data`
+  );
+
+  playerUrl.searchParams.set("endpoint", "players");
+
+  const response = await fetch(playerUrl.toString(), {
+    headers: {
+      Authorization: `Bearer ${supabaseAnonKey}`,
+      apikey: supabaseAnonKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `FantasyPros player lookup failed (${response.status})`
+    );
+  }
+
+  const data = await response.json();
+  const rawData = data.data ?? data;
+
+  const players =
+    rawData.players ?? rawData.data ?? [];
+
+  const normalizedName = playerName.trim().toLowerCase();
+
+  const match = players.find((player: any) => {
+    const name = String(
+      player.player_name ?? player.name ?? ""
+    )
+      .trim()
+      .toLowerCase();
+
+    const playerPosition = String(
+      player.position_id ?? player.position ?? ""
+    ).toUpperCase();
+
+    return (
+      name === normalizedName &&
+      playerPosition === position.toUpperCase()
+    );
+  });
+
+  if (!match) {
+    throw new Error(
+      `No FantasyPros player ID found for ${playerName}`
+    );
+  }
+
+  return String(match.player_id ?? match.fpid);
+}
+
 async function getFantasyProsProjection(
   playerName: string,
   position: string,
