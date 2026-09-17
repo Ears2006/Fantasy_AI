@@ -190,16 +190,7 @@ async function getFantasyProsProjection(
   week: number,
   scoringFormat: string
 ) {
-  const fantasyProsPlayerId = await findFantasyProsPlayerId(
-  playerName,
-  position
-);
 
-console.log(
-  "FANTASYPROS PLAYER ID:",
-  playerName,
-  fantasyProsPlayerId
-);
   const fpScoring =
   scoringFormat === "Half-PPR"
     ? "HALF"
