@@ -7,6 +7,7 @@ import { RosterAnalysisCard } from '@/components/fantasy/RosterAnalysisCard';
 import { SleeperList } from '@/components/fantasy/SleeperCard';
 import { TeamOverviewCard } from '@/components/fantasy/TeamOverviewCard';
 import { TradeCard } from '@/components/fantasy/TradeCard';
+import ReactMarkdown from 'react-markdown';
 
 interface MessageBubbleProps {
   message: ChatMessage;
