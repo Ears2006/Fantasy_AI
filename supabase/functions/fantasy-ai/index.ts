@@ -159,15 +159,16 @@ console.log(
   projectionPlayers.length
 );
 
-  console.log(
-  "FANTASYPROS PLAYER SAMPLE:",
+console.log(
+  "FANTASYPROS FIRST 20 PLAYERS:",
   projectionPlayers
-    .filter((player: any) =>
-      String(player.name ?? "")
-        .toLowerCase()
-        .includes("love")
-    )
-    .slice(0, 10)
+    .slice(0, 20)
+    .map((player: any) => ({
+      name: player.name,
+      position: player.position_id,
+      team: player.team_id,
+      fpid: player.fpid,
+    }))
 );
 
 const normalizedPlayerName = playerName.trim().toLowerCase();
