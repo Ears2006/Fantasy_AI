@@ -101,6 +101,9 @@ const tools = [
       additionalProperties: false,
     },
   },
+  {
+  type: "web_search",
+},
 ];
 
 
