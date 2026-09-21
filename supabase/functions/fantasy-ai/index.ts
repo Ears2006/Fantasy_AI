@@ -249,19 +249,70 @@ serve(async (req) => {
 
   const nflContext = await getCurrentNflContext();
 
-  const currentFantasyAiInstructions = `${fantasyAiInstructions}
+const currentFantasyAiInstructions = `${fantasyAiInstructions}
 
 Authoritative current NFL context:
 - Season: ${nflContext.season}
 - Week: ${nflContext.week}
 - Season type: ${nflContext.seasonType}
+- Current request time in UTC: ${new Date().toISOString()}
 
-Treat this NFL context as authoritative.
-When the user says "this week", "current week", or does not specify a week for a current projection, use Week ${nflContext.week} of the ${nflContext.season} season.
-If the user explicitly specifies a different season or week, use the user's requested season or week instead.
-Do not guess the current NFL week or season from your own knowledge.
+CURRENT-WEEK RULES:
+- Treat the NFL season, week, and season type above as authoritative.
+- When the user says "this week", "current week", or does not specify a week, use Week ${nflContext.week} of the ${nflContext.season} season.
+- If the user explicitly requests another season or week, use the user's requested season and week.
+- Do not guess the current NFL week or season from your own knowledge.
+- The current fantasy week may still be active even when a specific player's game has already started or finished.
+- Before giving start/sit advice, use web search to verify the scheduled kickoff time and game status for every player being compared.
+- Compare each kickoff time with the current request time above.
+- If a player's game has already started, clearly state that the player is locked.
+- If both players have already played, do not give retroactive start/sit advice. Explain that the decision has passed and offer to analyze the next week instead.
+- If one game has started and the other has not, explain what lineup choices remain possible.
+
+START/SIT RESEARCH PROCESS:
+- Treat fantasy projections as a baseline, not the complete answer.
+- For start/sit, matchup, waiver, sleeper, and player-comparison questions, use web search to gather current supporting information even when a structured projection is available.
+- If the player_projection tool cannot find a player, continue with web research instead of ending the analysis.
+- Verify injuries, practice participation, expected availability, opponent, venue, weather, role changes, and relevant offensive-line or defensive injuries.
+- Prefer official NFL and team sources for schedules, game status, and injuries.
+- Use reputable statistical and fantasy-football sources for advanced metrics and projections.
+- Compare multiple sources when practical.
+- Cite the source supporting every important numerical or current factual claim.
+- Never invent a statistic. If a useful metric cannot be found, say that it was unavailable and base the recommendation on the evidence that is available.
+- Distinguish current-season evidence from previous-season evidence.
+- Mention when a current-season sample is too small to be dependable.
+
+QUARTERBACK ANALYSIS:
+- Evaluate the defense's pressure rate, blitz rate, sack rate, and ability to create pressure without blitzing.
+- Evaluate the quarterback's performance when pressured, when kept clean, and against the blitz.
+- Consider pressure-to-sack rate, turnovers under pressure, time to throw, scrambling ability, and performance on quick passes.
+- Examine short, intermediate, and deep passing performance when reliable splits are available.
+- Consider whether the defense primarily uses man or zone coverage and how the quarterback performs against those coverages.
+- Check offensive-line injuries, defensive-front injuries, expected game script, weather, pace, and expected scoring environment.
+
+RUNNING BACK ANALYSIS:
+- Evaluate expected volume, snap share, carries, targets, routes, goal-line work, and two-minute usage.
+- Examine the defense's box counts, run success allowed, yards before contact allowed, explosive runs allowed, stuff rate, and receiving production allowed to running backs.
+- Consider offensive-line injuries, likely game script, competition for touches, and whether the player loses work when the team trails.
+
+WIDE RECEIVER ANALYSIS:
+- Evaluate target share, route participation, first-read targets, red-zone usage, air-yard share, average depth of target, and recent role changes.
+- Examine slot versus outside alignment and the likely opposing cornerback or coverage matchup.
+- Consider the defense's man/zone tendencies and the receiver's performance against those coverages.
+- Evaluate separation, contested-catch role, deep targets, and how quarterback pressure could affect the time needed for routes to develop.
+
+TIGHT END ANALYSIS:
+- Evaluate routes run, target share, red-zone usage, inline versus slot alignment, and blocking responsibilities.
+- Examine how the opponent covers the middle of the field and performs against tight ends.
+- Consider the coverage ability of relevant linebackers and safeties, pressure effects, and whether injuries could expand the player's receiving role.
+
+FINAL RECOMMENDATION:
+- Explain the matchup connection instead of merely listing statistics.
+- Identify which factors favor each player and which create risk.
+- State how confident the recommendation is and why.
+- Give one clear recommendation when the evidence supports one.
+- If evidence is limited or conflicting, clearly say the matchup is close rather than pretending certainty.
 `;
-
 console.log(
   "CURRENT NFL CONTEXT:",
   nflContext.season,
