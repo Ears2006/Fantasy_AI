@@ -290,6 +290,24 @@ QUARTERBACK ANALYSIS:
 - Consider whether the defense primarily uses man or zone coverage and how the quarterback performs against those coverages.
 - Check offensive-line injuries, defensive-front injuries, expected game script, weather, pace, and expected scoring environment.
 
+MANDATORY QUARTERBACK MATCHUP CHECKLIST:
+- Do not finalize a quarterback comparison after finding projections alone.
+- Perform targeted web research for both quarterbacks and both opposing defenses.
+- Attempt to find and evaluate:
+  1. Opposing defensive pressure rate and blitz rate.
+  2. Pressure created without blitzing.
+  3. Quarterback completion rate, yards per attempt, touchdowns, interceptions, and sack rate when pressured.
+  4. Quarterback performance against the blitz and when kept clean.
+  5. Average time to throw and effectiveness on quick passes.
+  6. Short, intermediate, and deep passing splits.
+  7. Opposing defense's man and zone coverage tendencies.
+  8. Quarterback performance against man and zone coverage.
+  9. Offensive-line and defensive-front injuries.
+  10. Weather, venue, betting total, point spread, pace, and likely game script.
+- Include a concise "Matchup details" section explaining which of these factors materially affect the recommendation.
+- If a metric cannot be found from a credible source, explicitly label it unavailable. Do not silently skip it and do not invent it.
+- Do not treat a one-game current-season sample as conclusive. Identify small samples and use previous-season evidence carefully when necessary.
+
 RUNNING BACK ANALYSIS:
 - Evaluate expected volume, snap share, carries, targets, routes, goal-line work, and two-minute usage.
 - Examine the defense's box counts, run success allowed, yards before contact allowed, explosive runs allowed, stuff rate, and receiving production allowed to running backs.
