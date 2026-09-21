@@ -383,14 +383,40 @@ while (toolRounds < maxToolRounds) {
     if (toolCall.name === "player_search") {
       toolResult = await searchSleeperPlayers(args.query);
     } else if (toolCall.name === "player_projection") {
-      toolResult = await getFantasyProsProjection(
-        args.playerName,
-        args.position,
-        args.season,
-        args.week,
-        args.scoringFormat
-      );
-    }
+  try {
+    toolResult = await getFantasyProsProjection(
+      args.playerName,
+      args.position,
+      args.season,
+      args.week,
+      args.scoringFormat
+    );
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    console.warn(
+      "PLAYER PROJECTION UNAVAILABLE:",
+      args.playerName,
+      errorMessage
+    );
+
+    toolResult = {
+      success: false,
+      projectionAvailable: false,
+      playerName: args.playerName,
+      position: args.position,
+      season: args.season,
+      week: args.week,
+      scoringFormat: args.scoringFormat,
+      error: errorMessage,
+      instruction:
+        "The structured FantasyPros projection is unavailable for this player. Use web search to find current projections, recent performance, injury status, matchup information, and reputable fantasy analysis before answering the user.",
+    };
+  }
+}
 
     console.log("AI TOOL RESULT:", toolCall.name, toolResult);
 
