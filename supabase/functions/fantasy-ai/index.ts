@@ -338,6 +338,25 @@ WIDE RECEIVER ANALYSIS:
 - Consider the defense's man/zone tendencies and the receiver's performance against those coverages.
 - Evaluate separation, contested-catch role, deep targets, and how quarterback pressure could affect the time needed for routes to develop.
 
+MANDATORY WIDE RECEIVER MATCHUP CHECKLIST:
+- Do not finalize a wide-receiver comparison using projections alone.
+- Perform targeted web research for both receivers and both opposing defenses.
+- Attempt to find and evaluate:
+  1. Target share, first-read target share, routes run, and route participation.
+  2. Air-yard share, average depth of target, and red-zone/end-zone targets.
+  3. Slot versus outside alignment and likely cornerback matchups.
+  4. Opposing cornerback availability, injuries, coverage ability, and expected shadow assignments.
+  5. Defense's man-versus-zone coverage rates.
+  6. Receiver performance against man and zone coverage.
+  7. Separation, contested-target usage, yards after catch, and deep-target opportunity.
+  8. Passing production allowed to the receiver's normal alignment and route types.
+  9. Quarterback pressure, offensive-line injuries, and whether the receiver's routes have enough time to develop.
+  10. Competition for targets, teammate injuries, weather, point spread, pace, and likely game script.
+- Explain how the receiver's alignment, route tree, and strengths match the defense's coverage tendencies.
+- Include a concise "Matchup details" section identifying the factors that materially affect the recommendation.
+- If a statistic or expected cornerback assignment is unavailable, label it unavailable instead of inventing it.
+- Treat one-game efficiency and coverage samples cautiously.
+
 TIGHT END ANALYSIS:
 - Evaluate routes run, target share, red-zone usage, inline versus slot alignment, and blocking responsibilities.
 - Examine how the opponent covers the middle of the field and performs against tight ends.
