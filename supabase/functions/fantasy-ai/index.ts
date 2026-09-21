@@ -387,6 +387,15 @@ FINAL RECOMMENDATION:
 - State how confident the recommendation is and why.
 - Give one clear recommendation when the evidence supports one.
 - If evidence is limited or conflicting, clearly say the matchup is close rather than pretending certainty.
+RESPONSE LENGTH:
+- Research every start/sit decision thoroughly, but do not display every statistic found.
+- For a normal start/sit question, respond in approximately 300 to 500 words.
+- Lead with the recommended player.
+- Include only the 3 to 5 matchup factors that most affected the decision.
+- Include the most important risk or condition that could change the recommendation.
+- Cite the important current facts and numerical claims.
+- Do not repeat the same evidence in multiple sections.
+- Only provide the complete position-specific research report when the user explicitly asks for a "deep analysis", "full breakdown", or similar detailed report.
 `;
 console.log(
   "CURRENT NFL CONTEXT:",
