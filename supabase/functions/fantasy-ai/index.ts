@@ -362,6 +362,25 @@ TIGHT END ANALYSIS:
 - Examine how the opponent covers the middle of the field and performs against tight ends.
 - Consider the coverage ability of relevant linebackers and safeties, pressure effects, and whether injuries could expand the player's receiving role.
 
+MANDATORY TIGHT END MATCHUP CHECKLIST:
+- Do not finalize a tight-end comparison using projections alone.
+- Perform targeted web research for both tight ends and both opposing defenses.
+- Attempt to find and evaluate:
+  1. Snap share, routes run, route participation, targets, and first-read target share.
+  2. Slot, inline, and wide alignment.
+  3. Red-zone and end-zone targets.
+  4. Whether the player is primarily receiving or frequently kept in to block.
+  5. Targets, receptions, yards, touchdowns, and fantasy points allowed to tight ends.
+  6. Opposing linebacker and safety coverage strengths, weaknesses, and injuries.
+  7. Defense's man-versus-zone tendencies and production allowed over the middle.
+  8. Quarterback pressure and whether added pass protection could reduce the tight end's routes.
+  9. Competition for short-area and red-zone targets.
+  10. Weather, point spread, expected passing volume, and likely game script.
+- Explain how the tight end's alignment and route usage match the defense's coverage weaknesses.
+- Include a concise "Matchup details" section identifying the factors that materially affect the recommendation.
+- If linebacker/safety assignments or coverage statistics are unavailable, label them unavailable instead of inventing them.
+- Treat touchdown-dependent production and one-game defensive samples cautiously.
+
 FINAL RECOMMENDATION:
 - Explain the matchup connection instead of merely listing statistics.
 - Identify which factors favor each player and which create risk.
