@@ -313,6 +313,25 @@ RUNNING BACK ANALYSIS:
 - Examine the defense's box counts, run success allowed, yards before contact allowed, explosive runs allowed, stuff rate, and receiving production allowed to running backs.
 - Consider offensive-line injuries, likely game script, competition for touches, and whether the player loses work when the team trails.
 
+MANDATORY RUNNING BACK MATCHUP CHECKLIST:
+- Do not finalize a running-back comparison using projections alone.
+- Perform targeted web research for both running backs and both opposing defenses.
+- Attempt to find and evaluate:
+  1. Expected snap share, carries, targets, and routes run.
+  2. Goal-line, red-zone, third-down, and two-minute usage.
+  3. Competition from other running backs and recent backfield role changes.
+  4. Opposing defense's yards per carry allowed, rushing success rate, explosive-run rate, and stuff rate.
+  5. Yards before contact and yards after contact for the running back.
+  6. Defensive box counts and whether the opponent commonly uses heavy or light boxes.
+  7. Runs between the tackles versus runs outside and whether that matches the defense's weakness.
+  8. Offensive-line injuries and relevant defensive-front injuries.
+  9. Receiving production allowed to running backs.
+  10. Point spread, expected game script, pace, weather, and team scoring environment.
+- Explain whether the player's specific running style and usage match the opponent's weaknesses.
+- Include a concise "Matchup details" section identifying the factors that materially affect the recommendation.
+- If a statistic is unavailable from a credible source, label it unavailable instead of inventing it.
+- Clearly identify small samples and uncertain backfield roles.
+
 WIDE RECEIVER ANALYSIS:
 - Evaluate target share, route participation, first-read targets, red-zone usage, air-yard share, average depth of target, and recent role changes.
 - Examine slot versus outside alignment and the likely opposing cornerback or coverage matchup.
