@@ -242,6 +242,37 @@ async function getCurrentNflContext() {
   };
 }
 
+async function getAuthenticatedUserId(
+  authorizationHeader: string | null
+): Promise<string | null> {
+  if (!authorizationHeader) return null;
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      Authorization: authorizationHeader,
+      apikey: supabaseAnonKey,
+    },
+  });
+
+  if (!response.ok) {
+    console.warn(
+      "Unable to identify prediction user:",
+      response.status
+    );
+    return null;
+  }
+
+  const user = await response.json();
+  return user.id ?? null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
