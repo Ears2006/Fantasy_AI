@@ -442,6 +442,17 @@ console.log(
       throw new Error("OPENAI_API_KEY is not configured");
     }
 
+    const authorizationHeader =
+  req.headers.get("Authorization");
+
+const authenticatedUserId =
+  await getAuthenticatedUserId(authorizationHeader);
+
+console.log(
+  "PREDICTION USER:",
+  authenticatedUserId ?? "not signed in"
+);
+
    const { message, history = [] } = await req.json();
 
     if (!message) {
