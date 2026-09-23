@@ -445,13 +445,13 @@ console.log(
     const authorizationHeader =
   req.headers.get("Authorization");
 
-const authenticatedUserId =
+    const authenticatedUserId =
   await getAuthenticatedUserId(authorizationHeader);
 
-console.log(
-  "PREDICTION USER:",
-  authenticatedUserId ?? "not signed in"
-);
+    console.log(
+      "PREDICTION USER:",
+      authenticatedUserId ?? "not signed in"
+    );
 
    const { message, history = [] } = await req.json();
 
