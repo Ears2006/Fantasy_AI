@@ -1,47 +1,72 @@
-// Mock authentication service.
-// Structured so real Supabase email/password auth can replace it later
-// without changing component signatures.
-
+import type { User } from '@supabase/supabase-js';
 import type { MockUser } from '@/types';
+import { supabase } from '@/lib/supabase';
 
-/**
- * // TODO-INTEGRATION: AUTH_DATABASE_PERSISTENCE
- *
- * FUTURE IMPLEMENTATION:
- * 1. Replace mock* functions with Supabase auth calls:
- *    - signIn -> supabase.auth.signInWithPassword()
- *    - signUp -> supabase.auth.signUp()
- *    - signOut -> supabase.auth.signOut()
- *    - getSession -> supabase.auth.getSession() + onAuthStateChange()
- * 2. Persist chat sessions to a Supabase table (RLS scoped to auth.uid()).
- * 3. Store Yahoo connection + tokens in a secure table / vault.
- *
- * INPUT:  email + password (sign in/up), session token (get session).
- * OUTPUT: MockUser | null — the shape the sidebar + app shell expect.
- * MOCK REPLACEMENT: this file (mockAuthService.ts).
- */
-export async function mockSignIn(email: string, _password: string): Promise<MockUser> {
-  await delay(700);
+function mapSupabaseUser(user: User): MockUser {
+  const email = user.email ?? '';
+
   return {
-    id: 'mock-user-1',
+    id: user.id,
     email,
-    displayName: email.split('@')[0] || 'Manager',
+    displayName:
+      user.user_metadata?.display_name ??
+      email.split('@')[0] ??
+      'Manager',
   };
 }
 
-export async function mockSignUp(email: string, _password: string): Promise<MockUser> {
-  await delay(800);
-  return {
-    id: 'mock-user-1',
-    email,
-    displayName: email.split('@')[0] || 'Manager',
-  };
+export async function mockSignIn(
+  email: string,
+  password: string
+): Promise<MockUser> {
+  const { data, error } =
+    await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data.user) {
+    throw new Error('Supabase did not return a user.');
+  }
+
+  return mapSupabaseUser(data.user);
+}
+
+export async function mockSignUp(
+  email: string,
+  password: string
+): Promise<MockUser> {
+  const { data, error } =
+    await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data.user) {
+    throw new Error('Supabase did not create the user.');
+  }
+
+  if (!data.session) {
+    throw new Error(
+      'Account created. Check your email to confirm your account, then sign in.'
+    );
+  }
+
+  return mapSupabaseUser(data.user);
 }
 
 export async function mockSignOut(): Promise<void> {
-  await delay(300);
-}
+  const { error } = await supabase.auth.signOut();
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  if (error) {
+    throw new Error(error.message);
+  }
 }
