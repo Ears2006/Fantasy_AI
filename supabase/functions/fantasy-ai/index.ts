@@ -104,6 +104,116 @@ const tools = [
   {
   type: "web_search",
 },
+  {
+  type: "function",
+  name: "record_prediction",
+  description:
+    "Save one completed, actionable, pre-kickoff start/sit recommendation. Call this exactly once after researching the matchup and deciding which player to recommend. Do not call it for games that already started, retrospective questions, hypothetical examples, or questions without a clear recommendation.",
+  parameters: {
+    type: "object",
+    properties: {
+      season: {
+        type: "number",
+        description: "NFL season year.",
+      },
+      week: {
+        type: "number",
+        description: "NFL week number.",
+      },
+      scoringFormat: {
+        type: "string",
+        enum: [
+          "Standard",
+          "Half-PPR",
+          "PPR",
+          "Unknown",
+        ],
+      },
+      candidates: {
+        type: "array",
+        description:
+          "Every player included in the start/sit decision.",
+        items: {
+          type: "object",
+          properties: {
+            playerId: {
+              type: "string",
+              description:
+                "Sleeper player ID when known.",
+            },
+            name: {
+              type: "string",
+            },
+            position: {
+              type: "string",
+            },
+            projection: {
+              type: "number",
+              description:
+                "Projected fantasy points when available.",
+            },
+          },
+          required: ["name", "position"],
+          additionalProperties: false,
+        },
+      },
+      recommendedPlayerId: {
+        type: "string",
+      },
+      recommendedPlayerName: {
+        type: "string",
+      },
+      obviousChoicePlayerId: {
+        type: "string",
+      },
+      obviousChoicePlayerName: {
+        type: "string",
+        description:
+          "The consensus or higher-projected choice, when identifiable.",
+      },
+      isContrarian: {
+        type: "boolean",
+        description:
+          "True when the recommendation intentionally disagrees with the consensus or higher projection.",
+      },
+      confidence: {
+        type: "number",
+        minimum: 0,
+        maximum: 10,
+      },
+      reasoningSummary: {
+        type: "string",
+        description:
+          "A concise explanation of the factors that determined the recommendation.",
+      },
+      sources: {
+        type: "array",
+        items: {
+          type: "string",
+        },
+        description:
+          "Important source URLs used for the recommendation.",
+      },
+      kickoffAt: {
+        type: "string",
+        description:
+          "The earliest relevant kickoff in ISO 8601 format when known.",
+      },
+    },
+    required: [
+      "season",
+      "week",
+      "scoringFormat",
+      "candidates",
+      "recommendedPlayerName",
+      "isContrarian",
+      "confidence",
+      "reasoningSummary",
+      "sources",
+    ],
+    additionalProperties: false,
+  },
+},
 ];
 
 
