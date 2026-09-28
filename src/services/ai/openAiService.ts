@@ -16,11 +16,17 @@ function getFantasyAiUrl(): string {
   return `${supabaseUrl}/functions/v1/fantasy-ai`;
 }
 
-function getHeaders(): Record<string, string> {
+async function getHeaders(): Promise<Record<string, string>> {
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   return {
-    Authorization: `Bearer ${anonKey}`,
+    Authorization: `Bearer ${
+      session?.access_token ?? anonKey
+    }`,
     apikey: anonKey,
     'Content-Type': 'application/json',
   };
