@@ -273,6 +273,95 @@ async function getAuthenticatedUserId(
   return user.id ?? null;
 }
 
+async function savePrediction(
+  args: any,
+  userId: string | null,
+  authorizationHeader: string | null
+) {
+  if (!userId || !authorizationHeader) {
+    return {
+      saved: false,
+      reason: "The user is not authenticated.",
+    };
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey =
+    Deno.env.get("SUPABASE_ANON_KEY");
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      "Supabase environment variables are missing"
+    );
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/ai_predictions`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: authorizationHeader,
+        apikey: supabaseAnonKey,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        conversation_id:
+          args.conversationId ?? null,
+        openai_response_id:
+          args.openaiResponseId ?? null,
+
+        prediction_type: "start_sit",
+        season: args.season,
+        week: args.week,
+        scoring_format:
+          args.scoringFormat ?? null,
+
+        candidates: args.candidates ?? [],
+
+        recommended_player_id:
+          args.recommendedPlayerId ?? null,
+        recommended_player_name:
+          args.recommendedPlayerName,
+
+        obvious_choice_player_id:
+          args.obviousChoicePlayerId ?? null,
+        obvious_choice_player_name:
+          args.obviousChoicePlayerName ?? null,
+
+        is_contrarian:
+          args.isContrarian ?? false,
+        confidence:
+          args.confidence ?? null,
+
+        reasoning_summary:
+          args.reasoningSummary ?? null,
+        sources:
+          args.sources ?? [],
+
+        kickoff_at:
+          args.kickoffAt ?? null,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(
+      `Prediction save failed (${response.status}): ${errorText}`
+    );
+  }
+
+  const rows = await response.json();
+
+  return {
+    saved: true,
+    predictionId: rows[0]?.id ?? null,
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
