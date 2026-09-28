@@ -43,7 +43,7 @@ export async function sendAiMessage(
 ): Promise<string> {
   const response = await fetch(getFantasyAiUrl(), {
     method: 'POST',
-    headers: getHeaders(),
+    headers: await getHeaders(),
     body: JSON.stringify({
       message,
       history,
