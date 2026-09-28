@@ -744,6 +744,7 @@ while (toolRounds < maxToolRounds) {
       (
         item.name === "player_search" ||
         item.name === "player_projection"
+        item.name === "record_prediction"
       )
   ) ?? [];
 
