@@ -871,8 +871,15 @@ if (toolRounds >= maxToolRounds) {
 );
 
 console.log(
-  "FINAL OUTPUT TYPES:",
-  currentData.output?.map((item: any) => item.type)
+  "FINAL OUTPUT DETAILS:",
+  currentData.output?.map((item: any) => ({
+    type: item.type,
+    name: item.name ?? null,
+    arguments:
+      item.type === "function_call"
+        ? item.arguments
+        : null,
+  }))
 );
 
 console.log(
