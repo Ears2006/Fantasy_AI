@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase';
+
 interface AiResponse {
   output?: Array<{
     content?: Array<{
