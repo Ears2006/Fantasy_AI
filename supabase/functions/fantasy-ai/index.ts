@@ -864,6 +864,21 @@ if (toolRounds >= maxToolRounds) {
   }
 }
 
+    console.log(
+  "FINAL RESPONSE STATUS:",
+  currentData.status
+);
+
+console.log(
+  "FINAL OUTPUT TYPES:",
+  currentData.output?.map((item: any) => item.type)
+);
+
+console.log(
+  "FINAL INCOMPLETE DETAILS:",
+  currentData.incomplete_details ?? null
+);
+
 return new Response(JSON.stringify(currentData), {
   headers: {
     ...corsHeaders,
