@@ -743,7 +743,7 @@ while (toolRounds < maxToolRounds) {
       item.type === "function_call" &&
       (
         item.name === "player_search" ||
-        item.name === "player_projection"
+        item.name === "player_projection" ||
         item.name === "record_prediction"
       )
   ) ?? [];
