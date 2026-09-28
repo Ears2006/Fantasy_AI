@@ -758,6 +758,12 @@ while (toolRounds < maxToolRounds) {
 
     if (toolCall.name === "player_search") {
       toolResult = await searchSleeperPlayers(args.query);
+      } else if (toolCall.name === "record_prediction") {
+  toolResult = await savePrediction(
+    args,
+    authenticatedUserId,
+    authorizationHeader
+  );
     } else if (toolCall.name === "player_projection") {
   try {
     toolResult = await getFantasyProsProjection(
