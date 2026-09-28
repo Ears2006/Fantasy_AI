@@ -876,6 +876,19 @@ console.log(
 );
 
 console.log(
+  "FINAL FUNCTION CALLS:",
+  currentData.output
+    ?.filter(
+      (item: any) =>
+        item.type === "function_call"
+    )
+    .map((item: any) => ({
+      name: item.name,
+      arguments: item.arguments,
+    })) ?? []
+);
+
+console.log(
   "FINAL INCOMPLETE DETAILS:",
   currentData.incomplete_details ?? null
 );
