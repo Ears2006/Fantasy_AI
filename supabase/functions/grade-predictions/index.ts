@@ -38,7 +38,7 @@ function calculateFantasyPoints(
 
   const points =
     numberValue(stats.pass_yd) * 0.04 +
-    numberValue(stats.pass_td) * 4 -
+    numberValue(stats.pass_td) * 6 -
     numberValue(stats.pass_int) * 2 +
     numberValue(stats.rush_yd) * 0.1 +
     numberValue(stats.rush_td) * 6 +
