@@ -13,6 +13,7 @@ import {
   Users,
   X,
   Zap,
+  ChartNoAxesCombined,
 } from 'lucide-react';
 import { useApp, type AppPage } from '@/state/AppContext';
 import type { ChatSession } from '@/types';

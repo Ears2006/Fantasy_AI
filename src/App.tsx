@@ -68,6 +68,11 @@ function AppShell() {
           {page === 'settings' && <div className="flex-1 overflow-y-auto"><SettingsPage /></div>}
           {page === 'about' && <div className="flex-1 overflow-y-auto"><AboutPage /></div>}
           {page === 'how-it-works' && <div className="flex-1 overflow-y-auto"><HowItWorksPage /></div>}
+          {page === 'predictions' && (
+  <div className="flex-1 overflow-y-auto">
+    <PredictionsPage />
+  </div>
+)}
         </main>
       </div>
 
