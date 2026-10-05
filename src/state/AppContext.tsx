@@ -82,6 +82,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void refreshYahooStatus();
   }, [refreshYahooStatus]);
 
+  useEffect(() => {
+  let active = true;
+
+  const applySessionUser = (sessionUser: any | null) => {
+    if (!active) return;
+
+    if (!sessionUser) {
+      setUser(null);
+      return;
+    }
+
+    setUser({
+      id: sessionUser.id,
+      email: sessionUser.email ?? '',
+      displayName:
+        sessionUser.user_metadata?.displayName ??
+        sessionUser.user_metadata?.display_name ??
+        sessionUser.email?.split('@')[0] ??
+        'Manager',
+    });
+  };
+
+  supabase.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      console.error('Session restore failed:', error.message);
+      return;
+    }
+
+    applySessionUser(data.session?.user ?? null);
+  });
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    applySessionUser(session?.user ?? null);
+  });
+
+  return () => {
+    active = false;
+    subscription.unsubscribe();
+  };
+}, []);
+
   const signIn = useCallback(async (email: string, password: string) => {
     const u = await mockSignIn(email, password);
     setUser(u);
