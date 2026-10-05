@@ -108,7 +108,7 @@ const tools = [
   type: "function",
   name: "record_prediction",
   description:
-    "Save one completed, actionable, pre-kickoff start/sit recommendation. Call this exactly once after researching the matchup and deciding which player to recommend. Do not call it for games that already started, retrospective questions, hypothetical examples, or questions without a clear recommendation.",
+  "Save exactly one completed, actionable, pre-kickoff start/sit recommendation. Before calling this tool, determine the exact season and week the user is asking about. If the user explicitly names a season or week, save those exact values and never replace them with the current NFL context. Do not call this tool for any retrospective question, completed game, already-started game, historical week, hypothetical example, unclear comparison, or response without a definite recommendation. Only call it when the user can still act on the recommendation. Call it exactly once, after all research is complete and immediately before giving the final answer.",
   parameters: {
     type: "object",
     properties: {
