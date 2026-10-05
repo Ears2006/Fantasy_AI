@@ -148,11 +148,10 @@ export function Sidebar({
               <SidebarItem icon={<LayoutGrid className="h-4 w-4" />} label="My Team" onClick={() => navTo('my-team')} />
               <SidebarItem icon={<Trophy className="h-4 w-4" />} label="League" onClick={() => navTo('league')} />
               <SidebarItem icon={<Settings2 className="h-4 w-4" />} label="League Settings" onClick={() => navTo('league-settings')} />
-              <SidebarItem
-  icon={<ChartNoAxesCombined className="h-4 w-4" />}
-  label="AI Accuracy"
-  onClick={() => navTo('predictions')}
-/>
+              <SidebarItem icon={<ChartNoAxesCombined className="h-4 w-4" />} label="AI Accuracy" onClick={() => navTo('predictions')} />
+  
+  
+  
               <SidebarItem icon={<SettingsIcon className="h-4 w-4" />} label="Settings" onClick={() => navTo('settings')} />
               <YahooStatus connected={yahoo.connected} />
             </ul>
