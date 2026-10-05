@@ -11,6 +11,7 @@ import { LeagueSettingsPage } from '@/pages/LeagueSettingsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { AboutPage } from '@/pages/AboutPage';
 import { HowItWorksPage } from '@/pages/HowItWorksPage';
+import { PredictionsPage } from '@/pages/PredictionsPage';
 
 function AppShell() {
   const { page, setPage, user } = useApp();
