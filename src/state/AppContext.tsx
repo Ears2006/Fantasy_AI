@@ -103,14 +103,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [refreshYahooStatus]);
 
   useEffect(() => {
-  let active = true;
-
-  useEffect(() => {
   sessionStorage.setItem(
     'fantasy-ai-current-page',
     page
   );
 }, [page]);
+
+useEffect(() => {
+  let active = true;
 
   const applySessionUser = (sessionUser: any | null) => {
     if (!active) return;
