@@ -46,7 +46,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedLeague, setSelectedLeague] = useState<ProviderLeague | null>(null);
   const [selectedLeagueSettings, setSelectedLeagueSettings] = useState<LeagueScoringSettings | null>(null);
   const [yahooUserTeam, setYahooUserTeam] = useState<ProviderTeam | null>(null);
-  cconst [page, setPage] = useState<AppPage>(() => {
+  const [page, setPage] = useState<AppPage>(() => {
   const savedPage = sessionStorage.getItem(
     'fantasy-ai-current-page'
   );
