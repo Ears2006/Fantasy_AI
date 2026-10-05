@@ -14,7 +14,7 @@ import {
   getYahooUserTeam,
 } from '@/services/yahoo/yahooService';
 
-export type AppPage = 'chat' | 'my-team' | 'league' | 'league-settings' | 'settings' | 'about' | 'how-it-works';
+export type AppPage = 'chat' | 'my-team' | 'league' | 'league-settings' | 'predictions' | 'settings' | 'about' | 'how-it-works';
 
 interface AppState {
   user: MockUser | null;
