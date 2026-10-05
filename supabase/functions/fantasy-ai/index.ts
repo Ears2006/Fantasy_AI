@@ -775,11 +775,57 @@ while (toolRounds < maxToolRounds) {
     if (toolCall.name === "player_search") {
       toolResult = await searchSleeperPlayers(args.query);
       } else if (toolCall.name === "record_prediction") {
-        toolResult = await savePrediction(
-        args,
-        authenticatedUserId,
-        authorizationHeader
-      );
+  const predictionSeason = Number(args.season);
+  const predictionWeek = Number(args.week);
+  const currentSeason = Number(nflContext.season);
+  const currentWeek = Number(nflContext.week);
+
+  const invalidWeek =
+    !Number.isInteger(predictionSeason) ||
+    !Number.isInteger(predictionWeek) ||
+    predictionWeek < 1 ||
+    predictionWeek > 18;
+
+  const historicalWeek =
+    predictionSeason < currentSeason ||
+    (
+      predictionSeason === currentSeason &&
+      predictionWeek < currentWeek
+    );
+
+  const kickoffTime = args.kickoffAt
+    ? Date.parse(args.kickoffAt)
+    : null;
+
+  const gameAlreadyStarted =
+    kickoffTime !== null &&
+    Number.isFinite(kickoffTime) &&
+    kickoffTime <= Date.now();
+
+  if (invalidWeek) {
+    toolResult = {
+      saved: false,
+      reason: "The prediction contained an invalid season or week.",
+    };
+  } else if (historicalWeek) {
+    toolResult = {
+      saved: false,
+      reason:
+        "Historical and retrospective recommendations are not tracked.",
+    };
+  } else if (gameAlreadyStarted) {
+    toolResult = {
+      saved: false,
+      reason:
+        "The game already started, so this recommendation cannot be tracked.",
+    };
+  } else {
+    toolResult = await savePrediction(
+      args,
+      authenticatedUserId,
+      authorizationHeader
+    );
+  }
     } else if (toolCall.name === "player_projection") {
   try {
     toolResult = await getFantasyProsProjection(
