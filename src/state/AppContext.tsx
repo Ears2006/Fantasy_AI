@@ -46,7 +46,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedLeague, setSelectedLeague] = useState<ProviderLeague | null>(null);
   const [selectedLeagueSettings, setSelectedLeagueSettings] = useState<LeagueScoringSettings | null>(null);
   const [yahooUserTeam, setYahooUserTeam] = useState<ProviderTeam | null>(null);
-  const [page, setPage] = useState<AppPage>('chat');
+  cconst [page, setPage] = useState<AppPage>(() => {
+  const savedPage = sessionStorage.getItem(
+    'fantasy-ai-current-page'
+  );
+
+  const validPages: AppPage[] = [
+    'chat',
+    'my-team',
+    'league',
+    'league-settings',
+    'predictions',
+    'settings',
+    'about',
+    'how-it-works',
+  ];
+
+  return savedPage &&
+    validPages.includes(savedPage as AppPage)
+    ? (savedPage as AppPage)
+    : 'chat';
+});
   const [yahooLoading, setYahooLoading] = useState(false);
   const [yahooError, setYahooError] = useState<string | null>(null);
 
