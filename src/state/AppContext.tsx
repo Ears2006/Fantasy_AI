@@ -105,6 +105,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
   let active = true;
 
+  useEffect(() => {
+  sessionStorage.setItem(
+    'fantasy-ai-current-page',
+    page
+  );
+}, [page]);
+
   const applySessionUser = (sessionUser: any | null) => {
     if (!active) return;
 
