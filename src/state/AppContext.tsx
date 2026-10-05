@@ -13,6 +13,7 @@ import {
   getYahooLeagueSettings,
   getYahooUserTeam,
 } from '@/services/yahoo/yahooService';
+import { supabase } from '@/lib/supabase';
 
 export type AppPage = 'chat' | 'my-team' | 'league' | 'league-settings' | 'predictions' | 'settings' | 'about' | 'how-it-works';
 
