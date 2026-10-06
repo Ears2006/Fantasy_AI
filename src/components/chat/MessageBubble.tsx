@@ -153,14 +153,10 @@ export function MessageBubble({ message, onRosterAction, onBuildBetterTrade }: M
           </div>
         )}
 
-        {/* Pending skeleton */}
-        {message.pending && !message.text && (
-          <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-ink-600 bg-ink-850 px-4 py-3">
-            <span className="h-2 w-2 animate-pulse-soft rounded-full bg-neon-500" />
-            <span className="h-2 w-2 animate-pulse-soft rounded-full bg-neon-500" style={{ animationDelay: '0.2s' }} />
-            <span className="h-2 w-2 animate-pulse-soft rounded-full bg-neon-500" style={{ animationDelay: '0.4s' }} />
-          </div>
-        )}
+        {/* Rotating thinking status */}
+{message.pending && !message.text && (
+  <ThinkingStatus />
+)}
       </div>
 
       {isUser && (
