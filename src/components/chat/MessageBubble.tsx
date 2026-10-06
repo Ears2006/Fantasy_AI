@@ -8,11 +8,59 @@ import { SleeperList } from '@/components/fantasy/SleeperCard';
 import { TeamOverviewCard } from '@/components/fantasy/TeamOverviewCard';
 import { TradeCard } from '@/components/fantasy/TradeCard';
 import ReactMarkdown from 'react-markdown';
+import { useEffect, useState } from 'react';
 
 interface MessageBubbleProps {
   message: ChatMessage;
   onRosterAction?: (action: 'optimize' | 'upgrades' | 'sleepers' | 'trade') => void;
   onBuildBetterTrade?: () => void;
+}
+
+// message bubble
+const thinkingMessages = [
+  'Checking the projections…',
+  'Searching the internet…',
+  'Studying the matchup…',
+  'Checking injuries and availability…',
+  'Breaking down the defense…',
+  'Asking the experts…',
+  'Questioning the obvious choice…',
+  'Looking for the sneaky upside…',
+  'Asking your mom and them…',
+  'Consulting the fantasy gods…',
+  'Making sure I don’t sell your lineup…',
+  'Preparing the final call…',
+];
+
+function ThinkingStatus() {
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setMessageIndex(
+        (currentIndex) =>
+          (currentIndex + 1) % thinkingMessages.length
+      );
+    }, 1800);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl rounded-bl-md border border-ink-600 bg-ink-850 px-4 py-3">
+      <span className="relative flex h-3 w-3 shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-500 opacity-40" />
+        <span className="relative inline-flex h-3 w-3 rounded-full bg-neon-500" />
+      </span>
+
+      <span
+        key={messageIndex}
+        className="animate-pulse text-sm text-gray-300"
+      >
+        {thinkingMessages[messageIndex]}
+      </span>
+    </div>
+  );
 }
 
 export function MessageBubble({ message, onRosterAction, onBuildBetterTrade }: MessageBubbleProps) {
