@@ -39,7 +39,8 @@ export interface AiChatMessage {
 
 export async function sendAiMessage(
   message: string,
-  history: AiChatMessage[] = []
+  history: AiChatMessage[] = [],
+  images: string[] = []
 ): Promise<string> {
   const response = await fetch(getFantasyAiUrl(), {
     method: 'POST',
