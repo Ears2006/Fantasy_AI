@@ -742,6 +742,8 @@ console.log(
         : message,
   },
 ],
+              }),
+    });
 
     const data = await response.json();
 
