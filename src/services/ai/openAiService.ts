@@ -48,6 +48,7 @@ export async function sendAiMessage(
     body: JSON.stringify({
       message,
       history,
+      images,
     }),
   });
 
