@@ -710,11 +710,29 @@ console.log(
   })),
   {
     role: "user",
-    content: message,
+    content:
+      Array.isArray(images) && images.length > 0
+        ? [
+            {
+              type: "input_text",
+              text: message,
+            },
+            ...images
+              .filter(
+                (image: unknown) =>
+                  typeof image === "string" &&
+                  image.startsWith("data:image/")
+              )
+              .slice(0, 4)
+              .map((image: string) => ({
+                type: "input_image",
+                image_url: image,
+                detail: "high",
+              })),
+          ]
+        : message,
   },
 ],
-      }),
-    });
 
     const data = await response.json();
 
