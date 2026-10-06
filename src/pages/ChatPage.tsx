@@ -69,43 +69,48 @@ export function ChatPage() {
     });
 
 try {
-  if (attachments.length > 0) {
-    const responses = await generateFantasyResponse(text, attachments);
-
-    removeMessage(pendingId);
-
-    for (const r of responses) {
-      addMessage(r);
-    }
-} else {
   const history = messages
     .filter(
       (message) =>
         !message.pending &&
         message.text &&
-        (message.kind === 'user' || message.kind === 'assistant')
+        (message.kind === 'user' ||
+          message.kind === 'assistant')
     )
     .map((message) => ({
       role: message.kind as 'user' | 'assistant',
       content: message.text as string,
     }));
 
-  const reply = await sendAiMessage(text, history);
+  const images = attachments.map(
+    (attachment) => attachment.dataUrl
+  );
+
+  const prompt =
+    text.trim() ||
+    'Analyze this fantasy football screenshot. Identify every visible player, lineup slot, scoring detail, projection, injury indicator, and matchup detail you can read. Clearly state anything that is unreadable or uncertain. Then research the relevant current information and provide actionable fantasy advice.';
+
+  const reply = await sendAiMessage(
+    prompt,
+    history,
+    images
+  );
 
   removeMessage(pendingId);
 
-    addMessage({
-      id: uid(),
-      kind: 'assistant',
-      text: reply,
-      createdAt: Date.now(),
-    });
-  }
+  addMessage({
+    id: uid(),
+    kind: 'assistant',
+    text: reply,
+    createdAt: Date.now(),
+  });
 } catch (error) {
   removeMessage(pendingId);
 
   const errorMessage =
-    error instanceof Error ? error.message : 'Unknown error';
+    error instanceof Error
+      ? error.message
+      : 'Unknown error';
 
   console.error('Fantasy AI chat error:', error);
 
