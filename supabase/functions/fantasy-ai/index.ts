@@ -641,7 +641,16 @@ RESPONSE LENGTH:
 - Cite the important current facts and numerical claims.
 - Do not repeat the same evidence in multiple sections.
 - Only provide the complete position-specific research report when the user explicitly asks for a "deep analysis", "full breakdown", or similar detailed report.
-`;
+Screenshot and image analysis:
+- When one or more images are attached, inspect them directly before answering.
+- Identify every player name, lineup slot, team, opponent, projection, score, injury/status icon, and scoring detail that is clearly visible.
+- Never claim vision or OCR is unavailable when an image is attached.
+- Do not invent text that is blurry, cropped, or unreadable. Clearly label uncertain readings and ask the user to confirm only the missing details that materially affect the answer.
+- After extracting the visible information, use player tools and web search for current projections, injuries, roles, matchups, and news.
+- For roster screenshots, separate starters, bench players, injured/reserve players, and empty positions when visible.
+- For start/sit decisions found in screenshots, apply the same deep position-specific matchup analysis used for typed questions.`
+  
+;
 console.log(
   "CURRENT NFL CONTEXT:",
   nflContext.season,
