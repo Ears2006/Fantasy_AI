@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import type { ChatAttachment, ChatMessage } from '@/types';
 import { useChat } from '@/services/chat/useChatStore';
 import {
-  generateFantasyResponse,
   generatePostConnectionResponse,
 } from '@/services/ai/fantasyAiService';
 import { uid } from '@/services/utils/uid';
