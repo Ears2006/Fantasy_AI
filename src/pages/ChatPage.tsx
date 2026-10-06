@@ -64,7 +64,7 @@ export function ChatPage() {
       id: pendingId,
       kind: 'assistant',
       pending: true,
-      text: attachments.length > 0 ? 'Analyzing roster...' : undefined,
+      text: undefined,
       createdAt: Date.now(),
     });
 
