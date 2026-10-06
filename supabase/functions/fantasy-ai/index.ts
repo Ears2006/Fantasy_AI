@@ -667,7 +667,11 @@ console.log(
       authenticatedUserId ?? "not signed in"
     );
 
-   const { message, history = [] } = await req.json();
+   const {
+  message,
+  history = [],
+  images = [],
+} = await req.json();
 
     if (!message) {
       return new Response(
