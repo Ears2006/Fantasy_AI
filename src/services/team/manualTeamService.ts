@@ -8,6 +8,11 @@
 
 import type { ManualLeague, ManualTeam, LeagueScoringSettings, ScoringFormat } from '@/types';
 import { uid } from '@/services/utils/uid';
+import {
+  clearCloudManualData,
+  saveCloudManualLeague,
+  saveCloudManualTeam,
+} from '@/services/team/manualTeamPersistenceService';
 
 const TEAM_KEY = 'ffa.manual.team.v1';
 const LEAGUE_KEY = 'ffa.manual.league.v1';
