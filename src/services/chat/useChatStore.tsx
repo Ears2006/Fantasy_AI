@@ -10,6 +10,16 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChatMessage, ChatSession } from '@/types';
 import { uid } from '@/services/utils/uid';
+import { supabase } from '@/lib/supabase';
+import {
+  clearSupabaseMessages,
+  deleteSupabaseMessage,
+  deleteSupabaseSession,
+  getChatUserId,
+  loadSupabaseChats,
+  saveSupabaseMessage,
+  saveSupabaseSession,
+} from '@/services/chat/chatPersistenceService';
 
 const STORAGE_KEY = 'ffa.chat.sessions.v1';
 const ACTIVE_KEY = 'ffa.chat.activeId.v1';
