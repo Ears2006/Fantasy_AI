@@ -171,12 +171,36 @@ useEffect(() => {
     subscription.unsubscribe();
   };
 }, []);
-  // Persist on change (after hydration).
-  useEffect(() => {
-    if (!hydrated.current) return;
-    saveSessions(sessions);
-  }, [sessions]);
+  // Guests keep their chats in localStorage.
+useEffect(() => {
+  if (!hydrated.current || chatUserId) return;
+  saveSessions(sessions);
+}, [sessions, chatUserId]);
 
+// Signed-in users save their sessions and messages to Supabase.
+useEffect(() => {
+  if (!hydrated.current || !chatUserId) return;
+
+  const syncChats = async () => {
+    try {
+      for (const session of sessions) {
+        await saveSupabaseSession(session, chatUserId);
+
+        const savedMessages = session.messages.filter(
+          (message) => !message.pending,
+        );
+
+        for (const message of savedMessages) {
+          await saveSupabaseMessage(session.id, message);
+        }
+      }
+    } catch (error) {
+      console.error('Unable to save chat history:', error);
+    }
+  };
+
+  void syncChats();
+}, [sessions, chatUserId]);
   useEffect(() => {
     if (!hydrated.current) return;
     saveActiveId(activeId);
