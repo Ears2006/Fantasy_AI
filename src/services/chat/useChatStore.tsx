@@ -281,17 +281,29 @@ useEffect(() => {
   );
 
   const removeMessage = useCallback(
-    (id: string) => {
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id !== activeId
-            ? s
-            : { ...s, messages: s.messages.filter((m) => m.id !== id), updatedAt: Date.now() },
-        ),
-      );
-    },
-    [activeId],
-  );
+  (id: string) => {
+    if (chatUserId) {
+      void deleteSupabaseMessage(id).catch((error) => {
+        console.error('Unable to delete saved message:', error);
+      });
+    }
+
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id !== activeId
+          ? session
+          : {
+              ...session,
+              messages: session.messages.filter(
+                (message) => message.id !== id,
+              ),
+              updatedAt: Date.now(),
+            },
+      ),
+    );
+  },
+  [activeId, chatUserId],
+);
 
   const clearActive = useCallback(() => {
     setSessions((prev) =>
