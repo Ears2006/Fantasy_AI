@@ -5,6 +5,7 @@ import { LeagueSettingsEditor, getDefaultScoring } from '@/components/fantasy/Le
 import {
   loadManualLeague,
   saveManualLeague,
+  syncManualData,
 } from '@/services/team/manualTeamService';
 
 export function LeagueSettingsPage() {
