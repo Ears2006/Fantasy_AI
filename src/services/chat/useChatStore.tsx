@@ -96,33 +96,81 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [chatUserId, setChatUserId] = useState<string | null>(null);
   const hydrated = useRef(false);
 
-  // Hydrate from localStorage on mount.
-  // Restore the last active conversation — do NOT create a new one
-  // unless there are genuinely no conversations to restore.
-  useEffect(() => {
-    const loaded = loadSessions();
-    const loadedActive = loadActiveId();
+  // Load chats from Supabase for signed-in users.
+// Guests continue using localStorage.
+useEffect(() => {
+  let active = true;
+  let loadedUserId: string | null | undefined;
 
-    if (loaded.length > 0) {
-      setSessions(loaded);
-      // Restore the active conversation if it still exists.
-      if (loadedActive && loaded.some((s) => s.id === loadedActive)) {
-        setActiveId(loadedActive);
+  const hydrateChats = async (userId: string | null) => {
+    if (!active || loadedUserId === userId) return;
+
+    loadedUserId = userId;
+    hydrated.current = false;
+    setChatUserId(userId);
+
+    try {
+      const loaded = userId
+        ? await loadSupabaseChats(userId)
+        : loadSessions();
+
+      const loadedActive = loadActiveId();
+
+      if (!active) return;
+
+      if (loaded.length > 0) {
+        setSessions(loaded);
+
+        if (
+          loadedActive &&
+          loaded.some((session) => session.id === loadedActive)
+        ) {
+          setActiveId(loadedActive);
+        } else {
+          const mostRecent = [...loaded].sort(
+            (a, b) => b.updatedAt - a.updatedAt,
+          )[0];
+
+          setActiveId(mostRecent.id);
+        }
       } else {
-        // Active ID is stale or missing — fall back to the most
-        // recently updated conversation rather than creating a new one.
-        const mostRecent = [...loaded].sort((a, b) => b.updatedAt - a.updatedAt)[0];
-        setActiveId(mostRecent.id);
+        const fresh = newSession();
+
+        setSessions([fresh]);
+        setActiveId(fresh.id);
+
+        if (userId) {
+          await saveSupabaseSession(fresh, userId);
+        }
       }
-    } else {
-      // No conversations exist — create one fresh.
+    } catch (error) {
+      console.error('Unable to load saved chats:', error);
+
+      if (!active) return;
+
       const fresh = newSession();
       setSessions([fresh]);
       setActiveId(fresh.id);
+    } finally {
+      if (active) hydrated.current = true;
     }
-    hydrated.current = true;
-  }, []);
+  };
 
+  void getChatUserId().then((userId) => {
+    void hydrateChats(userId);
+  });
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    void hydrateChats(session?.user?.id ?? null);
+  });
+
+  return () => {
+    active = false;
+    subscription.unsubscribe();
+  };
+}, []);
   // Persist on change (after hydration).
   useEffect(() => {
     if (!hydrated.current) return;
