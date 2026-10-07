@@ -10,6 +10,8 @@ import type { ManualLeague, ManualTeam, LeagueScoringSettings, ScoringFormat } f
 import { uid } from '@/services/utils/uid';
 import {
   clearCloudManualData,
+  loadCloudManualLeague,
+  loadCloudManualTeam,
   saveCloudManualLeague,
   saveCloudManualTeam,
 } from '@/services/team/manualTeamPersistenceService';
