@@ -220,22 +220,31 @@ useEffect(() => {
   }, []);
 
   const deleteSession = useCallback(
-    (id: string) => {
-      setSessions((prev) => {
-        const next = prev.filter((s) => s.id !== id);
-        if (next.length === 0) {
-          const fresh = newSession();
-          setActiveId(fresh.id);
-          return [fresh];
-        }
-        if (id === activeId) {
-          setActiveId(next[0].id);
-        }
-        return next;
+  (id: string) => {
+    if (chatUserId) {
+      void deleteSupabaseSession(id).catch((error) => {
+        console.error('Unable to delete saved chat:', error);
       });
-    },
-    [activeId],
-  );
+    }
+
+    setSessions((prev) => {
+      const next = prev.filter((session) => session.id !== id);
+
+      if (next.length === 0) {
+        const fresh = newSession();
+        setActiveId(fresh.id);
+        return [fresh];
+      }
+
+      if (id === activeId) {
+        setActiveId(next[0].id);
+      }
+
+      return next;
+    });
+  },
+  [activeId, chatUserId],
+);
 
   const addMessage = useCallback(
     (message: ChatMessage) => {
