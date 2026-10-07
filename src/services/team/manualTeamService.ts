@@ -140,3 +140,55 @@ export function clearManualData(): void {
     console.error('Unable to clear saved manual data:', error);
   });
 }
+
+export async function syncManualData(): Promise<{
+  league: ManualLeague | null;
+  team: ManualTeam | null;
+}> {
+  const localLeague = loadManualLeague();
+  const localTeam = loadManualTeam();
+
+  const [cloudLeague, cloudTeam] = await Promise.all([
+    loadCloudManualLeague(),
+    loadCloudManualTeam(),
+  ]);
+
+  let league = cloudLeague;
+  let team = cloudTeam;
+
+  // If Supabase has data, refresh the local offline cache.
+  if (cloudLeague) {
+    try {
+      localStorage.setItem(
+        LEAGUE_KEY,
+        JSON.stringify(cloudLeague),
+      );
+    } catch {
+      // Ignore unavailable localStorage.
+    }
+  } else if (localLeague) {
+    // First-time migration of an existing local league.
+    await saveCloudManualLeague(localLeague);
+    league = localLeague;
+  }
+
+  if (cloudTeam) {
+    try {
+      localStorage.setItem(
+        TEAM_KEY,
+        JSON.stringify(cloudTeam),
+      );
+    } catch {
+      // Ignore unavailable localStorage.
+    }
+  } else if (localTeam) {
+    // First-time migration of an existing local roster.
+    await saveCloudManualTeam(localTeam);
+    team = localTeam;
+  }
+
+  return {
+    league,
+    team,
+  };
+}
