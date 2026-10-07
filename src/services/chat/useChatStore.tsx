@@ -93,6 +93,7 @@ const ChatContext = createContext<ChatStoreValue | null>(null);
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [chatUserId, setChatUserId] = useState<string | null>(null);
   const hydrated = useRef(false);
 
   // Hydrate from localStorage on mount.
