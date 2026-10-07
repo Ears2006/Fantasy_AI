@@ -134,4 +134,7 @@ export function clearManualData(): void {
   } catch {
     // ignore
   }
+    void clearCloudManualData().catch((error) => {
+    console.error('Unable to clear saved manual data:', error);
+  });
 }
