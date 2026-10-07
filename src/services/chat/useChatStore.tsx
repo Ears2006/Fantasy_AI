@@ -306,10 +306,25 @@ useEffect(() => {
 );
 
   const clearActive = useCallback(() => {
-    setSessions((prev) =>
-      prev.map((s) => (s.id === activeId ? { ...s, messages: [], title: 'New Chat' } : s)),
-    );
-  }, [activeId]);
+  if (activeId && chatUserId) {
+    void clearSupabaseMessages(activeId).catch((error) => {
+      console.error('Unable to clear saved messages:', error);
+    });
+  }
+
+  setSessions((prev) =>
+    prev.map((session) =>
+      session.id === activeId
+        ? {
+            ...session,
+            messages: [],
+            title: 'New Chat',
+            updatedAt: Date.now(),
+          }
+        : session,
+    ),
+  );
+}, [activeId, chatUserId]);
 
   const value: ChatStoreValue = {
     sessions,
