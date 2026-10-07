@@ -12,6 +12,7 @@ import {
   updateManualTeam,
   getDefaultScoring,
   saveManualLeague,
+  syncManualData,
 } from '@/services/team/manualTeamService';
 import { getYahooRoster, crosswalkYahooRoster, type YahooRosterWithPlayers } from '@/services/yahoo/yahooService';
 import type { ReactNode } from 'react';
