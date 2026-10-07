@@ -65,7 +65,7 @@ useEffect(() => {
 />
 
       <p className="mt-4 text-center text-xs text-gray-600">
-        Settings persist locally. They will sync to your account when authentication is connected.
+        Settings save to your account and remain available across devices.
       </p>
     </div>
   );
