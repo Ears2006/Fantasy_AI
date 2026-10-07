@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import type { LeagueScoringSettings } from '@/types';
 import { LeagueSettingsEditor, getDefaultScoring } from '@/components/fantasy/LeagueSettingsEditor';
