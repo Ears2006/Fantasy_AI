@@ -104,6 +104,9 @@ export function saveManualTeam(team: ManualTeam): void {
   } catch {
     // ignore
   }
+    void saveCloudManualTeam(team).catch((error) => {
+    console.error('Unable to save manual team:', error);
+  });
 }
 
 export function createManualTeam(name: string, leagueId: string): ManualTeam {
