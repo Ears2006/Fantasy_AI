@@ -21,6 +21,23 @@ export function MyTeamPage() {
   const { yahoo, selectedLeague, yahooUserTeam, selectedLeagueSettings, yahooLoading, yahooError } = useApp();
   const [mode, setMode] = useState<'overview' | 'manual'>('overview');
   const [manualTeam, setManualTeam] = useState<ManualTeam | null>(() => loadManualTeam());
+  useEffect(() => {
+  let active = true;
+
+  void syncManualData()
+    .then(({ team }) => {
+      if (active && team) {
+        setManualTeam(team);
+      }
+    })
+    .catch((error) => {
+      console.error('Unable to load saved manual team:', error);
+    });
+
+  return () => {
+    active = false;
+  };
+}, []);
   const [teamName, setTeamName] = useState(manualTeam?.name ?? '');
   const [savedNotice, setSavedNotice] = useState(false);
 
