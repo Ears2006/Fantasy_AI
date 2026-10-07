@@ -80,6 +80,9 @@ export function saveManualLeague(scoring: LeagueScoringSettings, name: string): 
   } catch {
     // localStorage may be unavailable; fail silently.
   }
+  void saveCloudManualLeague(league).catch((error) => {
+  console.error('Unable to save league settings:', error);
+});
   return league;
 }
 
