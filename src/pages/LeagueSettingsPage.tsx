@@ -11,8 +11,8 @@ import {
 export function LeagueSettingsPage() {
   const [existing, setExisting] = useState(() =>
   loadManualLeague(),
-);
-const [savedNotice, setSavedNotice] = useState(false);
+  );
+  const [savedNotice, setSavedNotice] = useState(false);
 
 useEffect(() => {
   let active = true;
@@ -57,7 +57,12 @@ useEffect(() => {
         </div>
       )}
 
-      <LeagueSettingsEditor initial={initialScoring} initialName={initialName} onSave={handleSave} />
+      <LeagueSettingsEditor
+  key={existing?.updatedAt ?? 'default'}
+  initial={initialScoring}
+  initialName={initialName}
+  onSave={handleSave}
+/>
 
       <p className="mt-4 text-center text-xs text-gray-600">
         Settings persist locally. They will sync to your account when authentication is connected.
