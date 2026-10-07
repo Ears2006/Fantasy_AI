@@ -9,8 +9,28 @@ import {
 } from '@/services/team/manualTeamService';
 
 export function LeagueSettingsPage() {
-  const existing = loadManualLeague();
-  const [savedNotice, setSavedNotice] = useState(false);
+  const [existing, setExisting] = useState(() =>
+  loadManualLeague(),
+);
+const [savedNotice, setSavedNotice] = useState(false);
+
+useEffect(() => {
+  let active = true;
+
+  void syncManualData()
+    .then(({ league }) => {
+      if (active && league) {
+        setExisting(league);
+      }
+    })
+    .catch((error) => {
+      console.error('Unable to load saved league settings:', error);
+    });
+
+  return () => {
+    active = false;
+  };
+}, []);
 
   const initialScoring: LeagueScoringSettings = existing?.scoring ?? getDefaultScoring();
   const initialName = existing?.name ?? 'My Fantasy League';
