@@ -118,31 +118,15 @@ useEffect(() => {
 
       if (!active) return;
 
-      if (loaded.length > 0) {
-        setSessions(loaded);
+      const fresh = newSession();
 
-        if (
-          loadedActive &&
-          loaded.some((session) => session.id === loadedActive)
-        ) {
-          setActiveId(loadedActive);
-        } else {
-          const mostRecent = [...loaded].sort(
-            (a, b) => b.updatedAt - a.updatedAt,
-          )[0];
+setSessions(
+  loaded.length > 0
+    ? [fresh, ...loaded]
+    : [fresh],
+);
 
-          setActiveId(mostRecent.id);
-        }
-      } else {
-        const fresh = newSession();
-
-        setSessions([fresh]);
-        setActiveId(fresh.id);
-
-        if (userId) {
-          await saveSupabaseSession(fresh, userId);
-        }
-      }
+setActiveId(fresh.id);
     } catch (error) {
       console.error('Unable to load saved chats:', error);
 
