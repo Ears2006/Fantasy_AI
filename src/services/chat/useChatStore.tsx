@@ -168,7 +168,10 @@ useEffect(() => {
   const syncChats = async () => {
     try {
       for (const session of sessions) {
-        await saveSupabaseSession(session, chatUserId);
+  // Do not save untouched blank chats.
+  if (session.messages.length === 0) continue;
+
+  await saveSupabaseSession(session, chatUserId);
 
         const savedMessages = session.messages.filter(
           (message) => !message.pending,
