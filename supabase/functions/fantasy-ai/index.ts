@@ -743,6 +743,21 @@ console.log(
       authenticatedUserId ?? "not signed in"
     );
 
+    const savedFantasyContext =
+  await getSavedFantasyContext(authorizationHeader);
+
+if (savedFantasyContext) {
+  currentFantasyAiInstructions += savedFantasyContext;
+
+  console.log(
+    "SAVED FANTASY CONTEXT: loaded for authenticated user",
+  );
+} else {
+  console.log(
+    "SAVED FANTASY CONTEXT: no saved roster or league found",
+  );
+}
+
    const {
   message,
   history = [],
