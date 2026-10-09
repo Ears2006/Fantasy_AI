@@ -54,5 +54,6 @@ function Feature({ icon, title, desc }: { icon: React.ReactNode; title: string; 
       <h3 className="text-sm font-semibold text-white">{title}</h3>
       <p className="mt-1 text-xs text-gray-400">{desc}</p>
     </div>
+  </div>
   );
 }
