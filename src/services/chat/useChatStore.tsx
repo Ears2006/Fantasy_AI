@@ -114,7 +114,7 @@ useEffect(() => {
         ? await loadSupabaseChats(userId)
         : loadSessions();
 
-      const loadedActive = loadActiveId();
+      
 
       if (!active) return;
 
