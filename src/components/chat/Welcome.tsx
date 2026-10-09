@@ -55,7 +55,7 @@ export function Welcome({ onUploadClick, onSuggestion }: WelcomeProps) {
       </div>
 
       <p className="mt-6 text-xs text-gray-600">
-        Demo mode — analysis uses mock data. No account required.
+       Live AI analysis with current web research. Sign in to save chats, roster settings, and tracked predictions.
       </p>
     </div>
   );
