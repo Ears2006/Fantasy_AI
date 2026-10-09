@@ -37,7 +37,7 @@ export function AboutPage() {
         <Feature icon={<Sparkles className="h-4 w-4" />} title="Platform Sync" desc="Connect Yahoo Fantasy to auto-sync your league and roster." />
       </div>
 
-      <<div className="mt-4 rounded-lg border border-ink-600 bg-ink-850 px-4 py-3 text-xs text-gray-400">
+      <div className="mt-4 rounded-lg border border-ink-600 bg-ink-850 px-4 py-3 text-xs text-gray-400">
   Fantasy Football AI uses live web research, player data, saved league settings,
   roster context, screenshot analysis, and tracked recommendations to provide
   current fantasy-football guidance. Yahoo Fantasy syncing is coming soon.
