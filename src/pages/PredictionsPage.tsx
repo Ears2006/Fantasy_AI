@@ -140,8 +140,8 @@ export function PredictionsPage() {
     );
 
     return {
-      total: trackedpredictions.length,
-      pending: trackedpredictions.filter(
+      total: trackedPredictions.length,
+      pending: trackedPredictions.filter(
         (prediction) => prediction.status === 'pending'
       ).length,
       completed: completed.length,
