@@ -472,6 +472,73 @@ async function savePrediction(
   };
 }
 
+async function getSavedFantasyContext(
+  authorizationHeader: string | null,
+): Promise<string> {
+  if (!authorizationHeader) return "";
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn(
+      "Saved fantasy context unavailable: Supabase environment variables missing",
+    );
+    return "";
+  }
+
+  const headers = {
+    Authorization: authorizationHeader,
+    apikey: supabaseAnonKey,
+  };
+
+  const [leagueResponse, teamResponse] = await Promise.all([
+    fetch(
+      `${supabaseUrl}/rest/v1/manual_leagues?select=name,scoring&limit=1`,
+      { headers },
+    ),
+    fetch(
+      `${supabaseUrl}/rest/v1/manual_teams?select=name,league_id,roster&limit=1`,
+      { headers },
+    ),
+  ]);
+
+  if (!leagueResponse.ok || !teamResponse.ok) {
+    console.warn(
+      "Unable to load saved fantasy context:",
+      leagueResponse.status,
+      teamResponse.status,
+    );
+    return "";
+  }
+
+  const leagueRows = await leagueResponse.json();
+  const teamRows = await teamResponse.json();
+
+  const league = leagueRows[0] ?? null;
+  const team = teamRows[0] ?? null;
+
+  if (!league && !team) return "";
+
+  return `
+SAVED USER FANTASY CONTEXT:
+${league ? `League name: ${league.name}
+League scoring and roster settings:
+${JSON.stringify(league.scoring, null, 2)}` : "No saved manual league settings."}
+
+${team ? `Team name: ${team.name}
+Saved roster:
+${JSON.stringify(team.roster, null, 2)}` : "No saved manual roster."}
+
+SAVED-CONTEXT RULES:
+- Use this saved roster and league configuration when the user refers to "my team", "my roster", "my lineup", "my bench", or their league scoring without attaching another screenshot.
+- Treat saved player identity, roster membership, lineup slots, and scoring settings as user-provided context.
+- Do not assume saved projections, injuries, opponents, or player statuses are current. Verify time-sensitive information with tools and web search.
+- If the user names players who conflict with the saved roster, follow the user's current message.
+- If the saved roster is empty or incomplete, clearly explain what information is missing.
+`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
