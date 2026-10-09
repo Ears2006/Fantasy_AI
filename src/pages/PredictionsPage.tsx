@@ -118,6 +118,9 @@ export function PredictionsPage() {
   }, [refreshAndGrade]);
 
   const stats = useMemo(() => {
+    const trackedPredictions = predictions.filter(
+  (prediction) => prediction.status !== 'void'
+);
     const completed = predictions.filter(
       (prediction) =>
         prediction.status === 'graded' &&
