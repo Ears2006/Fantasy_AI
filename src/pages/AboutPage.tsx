@@ -41,7 +41,7 @@ export function AboutPage() {
   Fantasy Football AI uses live web research, player data, saved league settings,
   roster context, screenshot analysis, and tracked recommendations to provide
   current fantasy-football guidance. Yahoo Fantasy syncing is coming soon.
-</div>
+      </div>
   );
 }
 
