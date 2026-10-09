@@ -546,7 +546,7 @@ serve(async (req) => {
 
   const nflContext = await getCurrentNflContext();
 
-const currentFantasyAiInstructions = `${fantasyAiInstructions}
+let currentFantasyAiInstructions = `${fantasyAiInstructions}
 
 Authoritative current NFL context:
 - Season: ${nflContext.season}
