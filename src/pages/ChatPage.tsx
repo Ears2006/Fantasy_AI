@@ -116,7 +116,12 @@ try {
   addMessage({
     id: uid(),
     kind: 'assistant',
-    text: `DEBUG ERROR: ${errorMessage}`,
+    text:
+  errorMessage.includes('429') ||
+  errorMessage.includes('insufficient_quota') ||
+  errorMessage.includes('credit_balance_exhausted')
+    ? 'Fantasy AI is temporarily unavailable. Please try again shortly.'
+    : 'Something went wrong while generating your analysis. Please try again.',
     createdAt: Date.now(),
   });
 }
