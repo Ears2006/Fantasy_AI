@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
           req
         );
       }
-      const conn = await getConnection(sessionKey);
+      const conn = await getConnectionByUserId(userId);
       if (!conn) {
         return jsonResponse({
           configured: true,
@@ -152,14 +152,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-      // Store state for CSRF validation
-      await storeState(sessionKey, state);
-
-      const headers = new Headers(buildCorsHeaders(req));
-      headers.set("Location", authUrl.toString());
-      setSessionCookie(headers, sessionKey);
-      return new Response(null, { status: 302, headers });
-    }
+      
 
     // ---- OAuth callback ----
     if (action === "callback") {
