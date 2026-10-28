@@ -426,7 +426,7 @@ async function getAuthenticatedUserId(
   return user.id;
 }
 
-async function saveConnection(sessionKey: string, data: {
+async function saveConnection(sessionKey: string, userId: string, data: {
   access_token: string;
   refresh_token: string;
   token_type: string;
@@ -438,6 +438,7 @@ async function saveConnection(sessionKey: string, data: {
     .from("yahoo_connections")
     .upsert({
       session_key: sessionKey,
+      user_id: userId,
       access_token: data.access_token,
       refresh_token: data.refresh_token,
       token_type: data.token_type,
