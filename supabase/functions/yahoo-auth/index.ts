@@ -407,9 +407,13 @@ async function storeState(_sessionKey: string, _state: string): Promise<void> {
   // No additional storage needed — the state parameter IS the proof.
 }
 
-async function validateState(sessionKey: string, state: string): Promise<boolean> {
-  const stateSessionKey = getSessionKeyFromState(state);
-  return stateSessionKey === sessionKey;
+async function validateState(
+  sessionKey: string,
+  state: string
+): Promise<boolean> {
+  const connectionData = getConnectionDataFromState(state);
+
+  return connectionData?.sessionKey === sessionKey;
 }
 
 async function deleteState(_sessionKey: string): Promise<void> {
