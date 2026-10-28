@@ -23,7 +23,7 @@ import type {
   LeagueScoringSettings,
 } from '@/types';
 import {
-  getAuthStartUrl,
+  fetchAuthStart,
   fetchAuthStatus,
   disconnectYahoo as apiDisconnect,
   fetchYahooLeagues,
