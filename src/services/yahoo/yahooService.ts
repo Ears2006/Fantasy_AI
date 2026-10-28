@@ -131,6 +131,22 @@ export function connectYahoo(): Promise<YahooConnection> {
       }
     }, 1000);
 
+        const timeoutId = window.setTimeout(() => {
+      if (settled) return;
+
+      settled = true;
+      window.removeEventListener('message', messageHandler);
+      clearInterval(pollId);
+
+      if (!popup.closed) {
+        popup.close();
+      }
+
+      reject(new Error('Yahoo authentication timed out.'));
+    }, 120000);
+  });
+}
+
 /**
  * Checks the current Yahoo connection status by calling the edge function.
  */
