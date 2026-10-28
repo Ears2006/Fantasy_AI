@@ -67,6 +67,26 @@ export function connectYahoo(): Promise<YahooConnection> {
       return;
     }
 
+        void (async () => {
+      try {
+        const authUrl = await fetchAuthStart();
+
+        if (!popup.closed) {
+          popup.location.href = authUrl;
+        }
+      } catch (error) {
+        if (!popup.closed) {
+          popup.close();
+        }
+
+        reject(
+          error instanceof Error
+            ? error
+            : new Error("Unable to start Yahoo authentication.")
+        );
+      }
+    })();
+
     let settled = false;
 
     const messageHandler = (event: MessageEvent) => {
