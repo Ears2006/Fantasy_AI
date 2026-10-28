@@ -73,14 +73,19 @@ Deno.serve(async (req: Request) => {
           message: "YAHOO_CLIENT_ID and YAHOO_CLIENT_SECRET are not set.",
         }, 200, req);
       }
-      const sessionKey = getSessionKey(req);
-      if (!sessionKey) {
-        return jsonResponse({
-          configured: true,
-          connected: false,
-          status: "disconnected",
-          message: "No Yahoo connection for this session.",
-        }, 200, req);
+            const userId = await getAuthenticatedUserId(req);
+
+      if (!userId) {
+        return jsonResponse(
+          {
+            configured: true,
+            connected: false,
+            status: "disconnected",
+            message: "Authentication required.",
+          },
+          401,
+          req
+        );
       }
       const conn = await getConnection(sessionKey);
       if (!conn) {
