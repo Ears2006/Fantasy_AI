@@ -302,12 +302,26 @@ async function updateTokens(
     .eq("user_id", userId);
 }
 
-async function updateConnectionStatus(sessionKey: string, status: string): Promise<void> {
+async function updateConnectionStatus(
+  userId: string,
+  status: string
+): Promise<void> {
   const supabase = getSupabaseClient();
-  await supabase
+
+  const { error } = await supabase
     .from("yahoo_connections")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("session_key", sessionKey);
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+
+  if (error) {
+    throw new Error(
+      `Failed to update Yahoo connection status: ${error.message}`
+    );
+  }
+}ssion_key", sessionKey);
 }
 
 async function refreshToken(
