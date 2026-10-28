@@ -11,10 +11,18 @@ function getBaseUrl(): string {
   return import.meta.env.VITE_SUPABASE_URL;
 }
 
-function getAuthHeaders(): Record<string, string> {
+async function getAuthHeaders(): Promise<Record<string, string>> {
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const accessToken = session?.access_token ?? anonKey;
+
   return {
-    Authorization: `Bearer ${anonKey}`,
+    Authorization: `Bearer ${accessToken}`,
+    apikey: anonKey,
     "Content-Type": "application/json",
   };
 }
