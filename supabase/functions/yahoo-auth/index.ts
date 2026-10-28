@@ -319,17 +319,29 @@ function getRedirectUri(url: URL): string {
   return `https://${host}/functions/v1/yahoo-auth?action=callback`;
 }
 
-function generateState(sessionKey: string): string {
-  // State = sessionKey + random nonce, base64 encoded
+function generateState(
+  sessionKey: string,
+  userId: string
+): string {
   const nonce = crypto.randomUUID();
-  return btoa(`${sessionKey}:${nonce}`);
+  return btoa(`${sessionKey}:${userId}:${nonce}`);
 }
 
-function getSessionKeyFromState(state: string): string | null {
+function getConnectionDataFromState(
+  state: string
+): { sessionKey: string; userId: string } | null {
   try {
     const decoded = atob(state);
-    const [sessionKey] = decoded.split(":");
-    return sessionKey ?? null;
+    const [sessionKey, userId] = decoded.split(":");
+
+    if (!sessionKey || !userId) {
+      return null;
+    }
+
+    return {
+      sessionKey,
+      userId,
+    };
   } catch {
     return null;
   }
