@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
     if (isTokenExpired(conn.access_token_expires_at)) {
       const refreshed = await refreshToken(conn.refresh_token, clientId, clientSecret);
       if (!refreshed) {
-        await updateConnectionStatus(sessionKey, "expired");
+        await updateConnectionStatus(UserId, "expired");
         return jsonResponse(
           { error: "Yahoo token expired and refresh failed. Please reconnect Yahoo." },
           401,
@@ -95,7 +95,12 @@ Deno.serve(async (req: Request) => {
         );
       }
       const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000).toISOString();
-      await updateTokens(sessionKey, refreshed.access_token, refreshed.refresh_token, expiresAt);
+      await updateTokens(
+      userId,
+      refreshed.access_token,
+      refreshed.refresh_token,
+      expiresAt
+);
       accessToken = refreshed.access_token;
     }
 
