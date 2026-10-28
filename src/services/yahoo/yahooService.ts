@@ -84,30 +84,52 @@ export function connectYahoo(): Promise<YahooConnection> {
 
     window.addEventListener('message', messageHandler);
 
-    // Poll for popup closure — if the user closes the popup without
-    // completing OAuth (e.g. Yahoo showed an error page), reject
-    // with a clear message instead of waiting for the timeout.
-    const pollId = setInterval(() => {
-      if (popup.closed && !settled) {
-        settled = true;
-        window.removeEventListener('message', messageHandler);
-        clearInterval(pollId);
-        clearTimeout(timeoutId);
-        reject(new Error('Yahoo authentication window was closed before completing. This may indicate a Yahoo configuration issue — verify the callback URL in your Yahoo Developer app matches the expected URL.'));
-      }
-    }, 500);
+    // Poll Supabase for the saved Yahoo connection.
+    // This provides a reliable fallback when the OAuth popup cannot
+    // deliver its postMessage callback correctly.
+    let checkingStatus = false;
 
-    const timeoutId = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        window.removeEventListener('message', messageHandler);
-        clearInterval(pollId);
-        if (!popup.closed) popup.close();
-        reject(new Error('Yahoo authentication timed out.'));
+    const pollId = window.setInterval(async () => {
+      if (settled || checkingStatus) return;
+
+      checkingStatus = true;
+
+      try {
+        const connection = await checkConnectionStatus();
+
+        if (connection.connected) {
+          settled = true;
+          window.removeEventListener('message', messageHandler);
+          clearInterval(pollId);
+          clearTimeout(timeoutId);
+
+          if (!popup.closed) {
+            popup.close();
+          }
+
+          resolve(connection);
+          return;
+        }
+
+        if (popup.closed) {
+          settled = true;
+          window.removeEventListener('message', messageHandler);
+          clearInterval(pollId);
+          clearTimeout(timeoutId);
+
+          reject(
+            new Error(
+              'Yahoo authentication window was closed before completing.'
+            )
+          );
+        }
+      } catch {
+        // The callback may still be processing, so continue polling
+        // until it succeeds, the popup closes, or the timeout expires.
+      } finally {
+        checkingStatus = false;
       }
-    }, 120000);
-  });
-}
+    }, 1000);
 
 /**
  * Checks the current Yahoo connection status by calling the edge function.
