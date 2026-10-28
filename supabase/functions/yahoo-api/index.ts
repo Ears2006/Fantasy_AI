@@ -284,7 +284,7 @@ async function getConnection(sessionKey: string): Promise<{
 }
 
 async function updateTokens(
-  userId: string
+  userId: string,
   accessToken: string,
   refreshToken: string,
   expiresAt: string,
@@ -299,7 +299,7 @@ async function updateTokens(
       status: "connected",
       updated_at: new Date().toISOString(),
     })
-    .eq("session_key", sessionKey);
+    .eq("user_id", userId);
 }
 
 async function updateConnectionStatus(sessionKey: string, status: string): Promise<void> {
