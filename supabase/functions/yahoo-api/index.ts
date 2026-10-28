@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Get stored tokens
-    const conn = await getConnection(sessionKey);
+    const conn = await getConnectionByUserId(userId);
     if (!conn) {
       return jsonResponse({ error: "No Yahoo connection found. Connect Yahoo first." }, 401, req);
     }
