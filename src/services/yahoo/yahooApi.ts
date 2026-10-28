@@ -100,7 +100,7 @@ async function callYahooApi(
 
   const resp = await fetch(url.toString(), {
     headers: getAuthHeaders(),
-    credentials: "include", // Send the session cookie
+     // Send the session cookie
   });
 
   if (!resp.ok) {
