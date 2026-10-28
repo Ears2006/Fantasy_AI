@@ -235,13 +235,26 @@ function getCurrentSeason(): number {
   return now.getMonth() < 8 ? now.getFullYear() - 1 : now.getFullYear();
 }
 
-function getSessionKey(req: Request): string | null {
-  const cookies = req.headers.get("Cookie") ?? "";
-  for (const cookie of cookies.split(";")) {
-    const [name, value] = cookie.trim().split("=");
-    if (name === SESSION_COOKIE_NAME && value) return value;
+async function getConnectionByUserId(userId: string): Promise<{
+  access_token: string;
+  refresh_token: string;
+  access_token_expires_at: string;
+} | null> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("yahoo_connections")
+    .select(
+      "access_token, refresh_token, access_token_expires_at"
+    )
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
   }
-  return null;
+
+  return data;
 }
 
 function isTokenExpired(expiresAt: string): boolean {
