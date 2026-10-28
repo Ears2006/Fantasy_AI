@@ -473,7 +473,7 @@ async function saveConnection(sessionKey: string, userId: string, data: {
       yahoo_guid: data.yahoo_guid,
       status: "connected",
       updated_at: new Date().toISOString(),
-    }, { onConflict: "session_key" });
+    }, { onConflict: "user_id" });
 
   if (error) throw new Error(`Failed to save connection: ${error.message}`);
 }
