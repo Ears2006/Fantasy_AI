@@ -345,7 +345,7 @@ async function getAuthenticatedUserId(
       `Failed to update Yahoo connection status: ${error.message}`
     );
   }
-}ssion_key", sessionKey);
+
 }
 
 async function refreshToken(
