@@ -308,6 +308,30 @@ async function updateConnectionStatus(
 ): Promise<void> {
   const supabase = getSupabaseClient();
 
+async function getAuthenticatedUserId(
+  req: Request
+): Promise<string | null> {
+  const authorization = req.headers.get("Authorization");
+
+  if (!authorization?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authorization.slice("Bearer ".length);
+  const supabase = getSupabaseClient();
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(token);
+
+  if (error || !user) {
+    return null;
+  }
+
+  return user.id;
+}
+  
   const { error } = await supabase
     .from("yahoo_connections")
     .update({
