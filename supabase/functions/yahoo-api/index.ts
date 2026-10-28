@@ -284,7 +284,7 @@ async function getConnection(sessionKey: string): Promise<{
 }
 
 async function updateTokens(
-  sessionKey: string,
+  userId: string
   accessToken: string,
   refreshToken: string,
   expiresAt: string,
