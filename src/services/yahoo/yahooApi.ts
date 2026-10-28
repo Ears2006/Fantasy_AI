@@ -36,7 +36,7 @@ export function getAuthStartUrl(): string {
 export async function fetchAuthStart(): Promise<string> {
   const resp = await fetch(getAuthStartUrl(), {
     headers: await getAuthHeaders(),
-    credentials: "include",
+    
   });
 
   if (!resp.ok) {
@@ -61,7 +61,7 @@ export async function fetchAuthStart(): Promise<string> {
 export async function fetchAuthStatus(): Promise<YahooAuthStatusResponse> {
   const resp = await fetch(
     `${getBaseUrl()}/functions/v1/${AUTH_FUNCTION_PATH}?action=status`,
-    {   headers: await getAuthHeaders(),   credentials: "include", },
+    {   headers: await getAuthHeaders(),    },
   );
   if (!resp.ok) {
     return { configured: false, connected: false, status: "error", message: "Status check failed." };
