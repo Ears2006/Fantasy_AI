@@ -69,16 +69,18 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const sessionKey = getSessionKey(req);
-    if (!sessionKey) {
-      return jsonResponse({ error: "No Yahoo session found. Connect Yahoo first." }, 401, req);
+    const userId = await getAuthenticatedUserId(req);
+
+    if (!userId) {
+      return jsonResponse(
+        { error: "Authentication required." },
+        401,
+        req
+      );
     }
 
-    // Get stored tokens
+    // Get stored tokens for the signed-in FFAI account.
     const conn = await getConnectionByUserId(userId);
-    if (!conn) {
-      return jsonResponse({ error: "No Yahoo connection found. Connect Yahoo first." }, 401, req);
-    }
 
     // Refresh token if expired
     let accessToken = conn.access_token;
