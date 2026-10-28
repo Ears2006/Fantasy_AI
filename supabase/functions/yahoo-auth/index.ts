@@ -176,13 +176,17 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const sessionKey = getSessionKeyFromState(state);
-      if (!sessionKey) {
+            const connectionData = getConnectionDataFromState(state);
+
+      if (!connectionData) {
         return htmlResponse(
           `<html><body><script>window.opener.postMessage({type:'yahoo-callback',error:'invalid_state'},'*');window.close();</script></body></html>`,
-          200, req,
+          200,
+          req
         );
       }
+
+      const { sessionKey, userId } = connectionData;
 
       // Validate state for CSRF protection
       const validState = await validateState(sessionKey, state);
