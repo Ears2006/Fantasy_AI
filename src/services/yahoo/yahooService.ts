@@ -56,8 +56,11 @@ import { normalizePosition, normalizeTeam } from '@/services/fantasyData/fantasy
  */
 export function connectYahoo(): Promise<YahooConnection> {
   return new Promise((resolve, reject) => {
-    const authUrl = getAuthStartUrl();
-    const popup = window.open(authUrl, 'yahoo-auth', 'width=600,height=700,scrollbars=yes');
+        const popup = window.open(
+      'about:blank',
+      'yahoo-auth',
+      'width=600,height=700,scrollbars=yes'
+    );
 
     if (!popup) {
       reject(new Error('Popup blocked. Please allow popups for Yahoo authentication.'));
