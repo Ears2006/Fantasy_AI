@@ -226,7 +226,7 @@ Deno.serve(async (req: Request) => {
       const expiresAt = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000).toISOString();
 
       // Store tokens in database
-      await saveConnection(sessionKey, {
+      await saveConnection(sessionKey, userId, {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         token_type: tokens.token_type ?? "bearer",
@@ -373,6 +373,30 @@ function getConnectionDataFromState(
   } catch {
     return null;
   }
+}
+
+async function getConnectionByUserId(userId: string): Promise<{
+  access_token: string;
+  refresh_token: string;
+  access_token_expires_at: string;
+  yahoo_guid: string | null;
+  status: string;
+} | null> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("yahoo_connections")
+    .select(
+      "access_token, refresh_token, access_token_expires_at, yahoo_guid, status"
+    )
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
 }
 
 // ---- State management (stored in yahoo_leagues table temporarily) ----
