@@ -362,6 +362,30 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
+async function getAuthenticatedUserId(
+  req: Request
+): Promise<string | null> {
+  const authorization = req.headers.get("Authorization");
+
+  if (!authorization?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authorization.slice("Bearer ".length);
+  const supabase = getSupabaseClient();
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(token);
+
+  if (error || !user) {
+    return null;
+  }
+
+  return user.id;
+}
+
 async function saveConnection(sessionKey: string, data: {
   access_token: string;
   refresh_token: string;
