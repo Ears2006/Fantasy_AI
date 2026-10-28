@@ -262,11 +262,27 @@ function jsonResponse(body: unknown, status = 200, req?: Request): Response {
   });
 }
 
-function htmlResponse(html: string, status = 200, req?: Request): Response {
-  const headers = req ? buildCorsHeaders(req) : corsHeaders;
-  return new Response(html, {
+function htmlResponse(
+  html: string,
+  status = 200,
+  req?: Request
+): Response {
+  const cors = req ? buildCorsHeaders(req) : corsHeaders;
+  const responseHeaders = new Headers();
+
+  for (const [key, value] of Object.entries(cors)) {
+    responseHeaders.set(key, value);
+  }
+
+  responseHeaders.set(
+    "Content-Type",
+    "text/html; charset=UTF-8"
+  );
+  responseHeaders.set("Cache-Control", "no-store");
+
+  return new Response(`<!DOCTYPE html>${html}`, {
     status,
-    headers: {   ...headers,   "Content-Type": "text/html; charset=utf-8", },
+    headers: responseHeaders,
   });
 }
 
