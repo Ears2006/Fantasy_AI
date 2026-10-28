@@ -2,6 +2,8 @@
 // The Yahoo access token is NEVER in frontend code — it lives server-side.
 // This module handles HTTP communication with the yahoo-api edge function.
 
+import { supabase } from '@/lib/supabase';
+
 const AUTH_FUNCTION_PATH = "yahoo-auth";
 const API_FUNCTION_PATH = "yahoo-api";
 
@@ -26,7 +28,7 @@ export function getAuthStartUrl(): string {
 export async function fetchAuthStatus(): Promise<YahooAuthStatusResponse> {
   const resp = await fetch(
     `${getBaseUrl()}/functions/v1/${AUTH_FUNCTION_PATH}?action=status`,
-    { headers: getAuthHeaders(), credentials: "include" },
+    {   headers: await getAuthHeaders(),   credentials: "include", },
   );
   if (!resp.ok) {
     return { configured: false, connected: false, status: "error", message: "Status check failed." };
