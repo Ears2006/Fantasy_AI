@@ -33,6 +33,31 @@ export function getAuthStartUrl(): string {
   return `${getBaseUrl()}/functions/v1/${AUTH_FUNCTION_PATH}?action=start`;
 }
 
+export async function fetchAuthStart(): Promise<string> {
+  const resp = await fetch(getAuthStartUrl(), {
+    headers: await getAuthHeaders(),
+    credentials: "include",
+  });
+
+  if (!resp.ok) {
+    const errorText = await resp.text();
+
+    throw new Error(
+      `Unable to start Yahoo authentication (${resp.status}): ${errorText}`
+    );
+  }
+
+  const data = await resp.json();
+
+  if (!data.authUrl) {
+    throw new Error(
+      "Yahoo authentication did not return an authorization URL."
+    );
+  }
+
+  return data.authUrl;
+}
+
 export async function fetchAuthStatus(): Promise<YahooAuthStatusResponse> {
   const resp = await fetch(
     `${getBaseUrl()}/functions/v1/${AUTH_FUNCTION_PATH}?action=status`,
