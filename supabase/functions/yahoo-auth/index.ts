@@ -111,9 +111,21 @@ Deno.serve(async (req: Request) => {
     }
 
     // ---- Start OAuth flow ----
-    if (action === "start") {
-      const sessionKey = getOrCreateSessionKey(req);
-      const state = generateState(sessionKey);
+        if (action === "start") {
+      const userId = await getAuthenticatedUserId(req);
+
+      if (!userId) {
+        return jsonResponse(
+          {
+            error: "Authentication required.",
+          },
+          401,
+          req
+        );
+      }
+
+      const sessionKey = crypto.randomUUID();
+      const state = generateState(sessionKey, userId);
       const redirectUri = getRedirectUri(url);
 
       const authUrl = new URL(YAHOO_AUTH_URL);
@@ -122,6 +134,18 @@ Deno.serve(async (req: Request) => {
       authUrl.searchParams.set("redirect_uri", redirectUri);
       authUrl.searchParams.set("state", state);
       authUrl.searchParams.set("scope", "fspt-r");
+
+      // Store the complete state for CSRF validation.
+      await storeState(sessionKey, state);
+
+      return jsonResponse(
+        {
+          authUrl: authUrl.toString(),
+        },
+        200,
+        req
+      );
+    }
 
       // Store state for CSRF validation
       await storeState(sessionKey, state);
