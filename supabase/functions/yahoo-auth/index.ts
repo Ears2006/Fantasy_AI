@@ -266,7 +266,7 @@ function htmlResponse(html: string, status = 200, req?: Request): Response {
   const headers = req ? buildCorsHeaders(req) : corsHeaders;
   return new Response(html, {
     status,
-    headers: { ...headers, "Content-Type": "text/html" },
+    headers: {   ...headers,   "Content-Type": "text/html; charset=utf-8", },
   });
 }
 
