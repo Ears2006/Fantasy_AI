@@ -267,21 +267,6 @@ function getSupabaseClient() {
   return createClient(supabaseUrl, serviceRoleKey);
 }
 
-async function getConnection(sessionKey: string): Promise<{
-  access_token: string;
-  refresh_token: string;
-  access_token_expires_at: string;
-} | null> {
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from("yahoo_connections")
-    .select("access_token, refresh_token, access_token_expires_at")
-    .eq("session_key", sessionKey)
-    .maybeSingle();
-
-  if (error || !data) return null;
-  return data;
-}
 
 async function updateTokens(
   userId: string,
