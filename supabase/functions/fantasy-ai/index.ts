@@ -701,7 +701,7 @@ PREDICTION RECORDING:
 
 RESPONSE LENGTH:
 - Research every start/sit decision thoroughly, but do not display every statistic found.
-- For a normal start/sit question, respond in approximately 300 to 500 words.
+- For a normal start/sit question, respond in approximately 150 to 300 words.
 - Lead with the recommended player.
 - Include only the 3 to 5 matchup factors that most affected the decision.
 - Include the most important risk or condition that could change the recommendation.
