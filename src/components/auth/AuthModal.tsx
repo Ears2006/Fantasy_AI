@@ -15,6 +15,15 @@ export function AuthModal({ open, mode, onClose, onSwitchMode }: AuthModalProps)
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+useEffect(() => {
+  if (open) {
+    setError('');
+    setSuccess('');
+    setPassword('');
+  }
+}, [open, mode]);
 
   if (!open) return null;
 
