@@ -1189,7 +1189,7 @@ if (savedFantasyContext) {
     /* Detect player search tool call */
 let currentData = data;
 let toolRounds = 0;
-const maxToolRounds = 5;
+const maxToolRounds = 6;
 
 while (toolRounds < maxToolRounds) {
   const toolCalls = currentData.output?.filter(
