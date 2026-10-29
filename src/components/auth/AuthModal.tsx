@@ -138,7 +138,11 @@ useEffect(() => {
         <p className="mt-4 text-center text-xs text-gray-500">
           {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
           <button
-            onClick={() => onSwitchMode(mode === 'signin' ? 'signup' : 'signin')}
+            onClick={() => {
+  setError('');
+  setSuccess('');
+  onSwitchMode(mode === 'signin' ? 'signup' : 'signin');
+}}
             className="font-medium text-neon-300 hover:text-neon-200"
           >
             {mode === 'signin' ? 'Sign up' : 'Sign in'}
