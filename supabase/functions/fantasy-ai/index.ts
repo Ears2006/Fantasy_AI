@@ -104,6 +104,70 @@ const tools = [
   {
   type: "web_search",
 },
+    {
+    type: "function",
+    name: "run_simulation",
+    description:
+      "Run exactly 100 real numerical simulations after completing current matchup research. Use fantasy mode for start/sit, waiver, sleeper, lineup, trade-impact, and player-comparison recommendations. Use game mode for NFL winner and final-score predictions. Supply evidence-based mean values, standard deviations, and availability probabilities. Do not invent simulation results without calling this tool.",
+    parameters: {
+      type: "object",
+      properties: {
+        mode: {
+          type: "string",
+          enum: ["fantasy", "game"],
+          description:
+            "Use fantasy for player fantasy-point comparisons and game for NFL final-score predictions.",
+        },
+        entries: {
+          type: "array",
+          minItems: 2,
+          maxItems: 10,
+          description:
+            "Players being compared or the two NFL teams being simulated.",
+          items: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "Player or team name.",
+              },
+              mean: {
+                type: "number",
+                description:
+                  "Evidence-based projected fantasy points or projected team points.",
+              },
+              standardDeviation: {
+                type: "number",
+                description:
+                  "Expected scoring volatility. This must be positive and based on role and matchup uncertainty.",
+              },
+              availabilityProbability: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+                description:
+                  "Probability of playing and completing a normal game. Use 1 for healthy teams or players.",
+              },
+            },
+            required: [
+              "name",
+              "mean",
+              "standardDeviation",
+              "availabilityProbability",
+            ],
+            additionalProperties: false,
+          },
+        },
+        assumptions: {
+          type: "string",
+          description:
+            "Concise summary of the researched projections, injuries, matchup, weather, spread, total, and role assumptions used to create the inputs.",
+        },
+      },
+      required: ["mode", "entries", "assumptions"],
+      additionalProperties: false,
+    },
+  },
   {
   type: "function",
   name: "record_prediction",
