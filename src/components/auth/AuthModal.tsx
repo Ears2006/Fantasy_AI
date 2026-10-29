@@ -27,27 +27,46 @@ useEffect(() => {
 
   if (!open) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError('Please enter email and password.');
-      return;
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!email || !password) {
+    setSuccess('');
+    setError('Please enter email and password.');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+  setSuccess('');
+
+  try {
+    if (mode === 'signin') {
+      await signIn(email, password);
+    } else {
+      await signUp(email, password);
     }
-    setLoading(true);
-    setError('');
-    try {
-      if (mode === 'signin') {
-        await signIn(email, password);
-      } else {
-        await signUp(email, password);
-      }
-      onClose();
-    } catch {
-      setError('Something went wrong. Try again.');
-    } finally {
-      setLoading(false);
+
+    onClose();
+  } catch (caughtError) {
+    const message =
+      caughtError instanceof Error
+        ? caughtError.message
+        : 'Something went wrong. Try again.';
+
+    if (
+      message ===
+      'Account created. Check your email to confirm your account, then sign in.'
+    ) {
+      setSuccess(message);
+      setPassword('');
+    } else {
+      setError(message);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
