@@ -1195,9 +1195,10 @@ while (toolRounds < maxToolRounds) {
   const toolCalls = currentData.output?.filter(
     (item: any) =>
       item.type === "function_call" &&
-      (
+            (
         item.name === "player_search" ||
         item.name === "player_projection" ||
+        item.name === "run_simulation" ||
         item.name === "record_prediction"
       )
   ) ?? [];
