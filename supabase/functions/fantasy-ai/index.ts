@@ -603,6 +603,236 @@ SAVED-CONTEXT RULES:
 `;
 }
 
+function randomNormal(mean: number, standardDeviation: number): number {
+  // Box-Muller transform: converts uniform random values into
+  // a normally distributed result.
+  let u = 0;
+  let v = 0;
+
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+
+  const standardNormal =
+    Math.sqrt(-2 * Math.log(u)) *
+    Math.cos(2 * Math.PI * v);
+
+  return mean + standardNormal * standardDeviation;
+}
+
+function calculatePercentile(
+  sortedValues: number[],
+  percentile: number
+): number {
+  if (sortedValues.length === 0) return 0;
+
+  const index =
+    (percentile / 100) * (sortedValues.length - 1);
+
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+
+  if (lower === upper) {
+    return sortedValues[lower];
+  }
+
+  const weight = index - lower;
+
+  return (
+    sortedValues[lower] * (1 - weight) +
+    sortedValues[upper] * weight
+  );
+}
+
+function runSimulation(args: any) {
+  const mode = args?.mode;
+
+  if (mode !== "fantasy" && mode !== "game") {
+    throw new Error(
+      "Simulation mode must be fantasy or game."
+    );
+  }
+
+  if (
+    !Array.isArray(args?.entries) ||
+    args.entries.length < 2 ||
+    args.entries.length > 10
+  ) {
+    throw new Error(
+      "Simulation requires between 2 and 10 entries."
+    );
+  }
+
+  if (mode === "game" && args.entries.length !== 2) {
+    throw new Error(
+      "A game simulation requires exactly two teams."
+    );
+  }
+
+  const entries = args.entries.map((entry: any) => {
+    const name = String(entry?.name ?? "").trim();
+    const mean = Number(entry?.mean);
+    const standardDeviation =
+      Number(entry?.standardDeviation);
+    const availabilityProbability =
+      Number(entry?.availabilityProbability);
+
+    if (!name) {
+      throw new Error(
+        "Every simulation entry requires a name."
+      );
+    }
+
+    if (
+      !Number.isFinite(mean) ||
+      !Number.isFinite(standardDeviation) ||
+      standardDeviation <= 0 ||
+      !Number.isFinite(availabilityProbability)
+    ) {
+      throw new Error(
+        `Invalid simulation inputs for ${name}.`
+      );
+    }
+
+    return {
+      name,
+      mean: Math.max(0, Math.min(mean, 100)),
+      standardDeviation: Math.max(
+        0.1,
+        Math.min(standardDeviation, 50)
+      ),
+      availabilityProbability: Math.max(
+        0,
+        Math.min(availabilityProbability, 1)
+      ),
+      scores: [] as number[],
+      wins: 0,
+    };
+  });
+
+  const iterations = 100;
+  let ties = 0;
+  const finalScoreCounts = new Map<string, number>();
+
+  for (let trial = 0; trial < iterations; trial++) {
+    const trialScores = entries.map((entry: any) => {
+      const available =
+        Math.random() <= entry.availabilityProbability;
+
+      let score = available
+        ? randomNormal(
+            entry.mean,
+            entry.standardDeviation
+          )
+        : 0;
+
+      score = Math.max(0, score);
+
+      if (mode === "game") {
+        score = Math.round(score);
+      } else {
+        score = Math.round(score * 100) / 100;
+      }
+
+      entry.scores.push(score);
+      return score;
+    });
+
+    const highestScore = Math.max(...trialScores);
+    const winners = trialScores
+      .map((score: number, index: number) => ({
+        score,
+        index,
+      }))
+      .filter(
+        (result: { score: number; index: number }) =>
+          result.score === highestScore
+      );
+
+    if (winners.length === 1) {
+      entries[winners[0].index].wins += 1;
+    } else {
+      ties += 1;
+    }
+
+    if (mode === "game") {
+      const scoreKey =
+        `${trialScores[0]}-${trialScores[1]}`;
+
+      finalScoreCounts.set(
+        scoreKey,
+        (finalScoreCounts.get(scoreKey) ?? 0) + 1
+      );
+    }
+  }
+
+  const results = entries.map((entry: any) => {
+    const sortedScores = [...entry.scores].sort(
+      (a: number, b: number) => a - b
+    );
+
+    const average =
+      sortedScores.reduce(
+        (total: number, score: number) =>
+          total + score,
+        0
+      ) / sortedScores.length;
+
+    return {
+      name: entry.name,
+      wins: entry.wins,
+      winRate: Math.round(entry.wins),
+      average:
+        Math.round(average * 100) / 100,
+      median:
+        Math.round(
+          calculatePercentile(sortedScores, 50) * 100
+        ) / 100,
+      floor:
+        Math.round(
+          calculatePercentile(sortedScores, 10) * 100
+        ) / 100,
+      ceiling:
+        Math.round(
+          calculatePercentile(sortedScores, 90) * 100
+        ) / 100,
+    };
+  });
+
+  const leader = [...results].sort(
+    (a, b) =>
+      b.wins - a.wins ||
+      b.average - a.average
+  )[0];
+
+  let mostCommonFinalScore = null;
+
+  if (mode === "game") {
+    mostCommonFinalScore = [
+      ...finalScoreCounts.entries(),
+    ].sort((a, b) => b[1] - a[1])[0];
+
+    if (mostCommonFinalScore) {
+      mostCommonFinalScore = {
+        score: mostCommonFinalScore[0],
+        occurrences: mostCommonFinalScore[1],
+      };
+    }
+  }
+
+  return {
+    success: true,
+    mode,
+    iterations,
+    assumptions: String(args?.assumptions ?? ""),
+    leader: leader.name,
+    ties,
+    results,
+    mostCommonFinalScore,
+    instruction:
+      "Use these exact simulation results in the final answer. Do not alter, approximate, or invent the win counts.",
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
