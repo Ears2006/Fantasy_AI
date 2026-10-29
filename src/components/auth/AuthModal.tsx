@@ -149,9 +149,7 @@ useEffect(() => {
           </button>
         </p>
 
-        <p className="mt-3 text-center text-[11px] text-gray-600">
-          // TODO-INTEGRATION: AUTH_DATABASE_PERSISTENCE — mock auth for demo
-        </p>
+       
       </div>
     </div>
   );
