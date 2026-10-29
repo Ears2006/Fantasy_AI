@@ -686,6 +686,7 @@ FINAL RECOMMENDATION:
 - If evidence is limited or conflicting, clearly say the matchup is close rather than pretending certainty.
 
 PREDICTION RECORDING:
+- The recommendation and confidence recorded by record_prediction must match the final recommendation produced after evaluating the 100 simulated outcomes.
 - When the user asks for an actionable start/sit comparison between two or more players whose games have not started, call the record_prediction tool exactly once before giving the final answer.
 - Complete the matchup research and choose the recommended player before calling record_prediction.
 - Include every player being compared in candidates.
