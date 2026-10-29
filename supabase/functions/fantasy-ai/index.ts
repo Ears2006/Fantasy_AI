@@ -1227,8 +1227,29 @@ while (toolRounds < maxToolRounds) {
     let toolResult;
 
     if (toolCall.name === "player_search") {
-      toolResult = await searchSleeperPlayers(args.query);
-      } else if (toolCall.name === "record_prediction") {
+  toolResult = await searchSleeperPlayers(args.query);
+} else if (toolCall.name === "run_simulation") {
+  try {
+    toolResult = runSimulation(args);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    console.error(
+      "SIMULATION FAILED:",
+      errorMessage
+    );
+
+    toolResult = {
+      success: false,
+      error: errorMessage,
+      instruction:
+        "Correct the simulation inputs and call run_simulation again before giving a recommendation or game prediction.",
+    };
+  }
+} else if (toolCall.name === "record_prediction") {
   const predictionSeason = Number(args.season);
   const predictionWeek = Number(args.week);
   const currentSeason = Number(nflContext.season);
